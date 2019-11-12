@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">App</string>
+    <string name="trajectory">Trajectory</string>
+    <string name="gps">gps</string>
+    <string name="steps">steps</string>
+    <string name="textview">test1</string>
+    <string name="crash_me">Crash Me !</string>
+</resources>
