@@ -21,14 +21,15 @@ class GPSRepository (
     }
 
     @WorkerThread
-    suspend fun getByID(timestamp: Long): GPS {
-        return gpsDao.getById(timestamp)
+    suspend fun getByID(id: Long): GPS {
+        return gpsDao.getById(id)
     }
 
     @WorkerThread
     suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<GPS> {
         return gpsDao.getByTimestamp(minTimestamp, maxTimestamp)
     }
+
 
     @WorkerThread
     suspend fun deleteAll() {

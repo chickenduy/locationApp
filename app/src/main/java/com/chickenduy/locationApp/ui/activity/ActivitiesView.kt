@@ -1,4 +1,4 @@
-package com.chickenduy.locationApp.ui.gps
+package com.chickenduy.locationApp.ui.activity
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -8,24 +8,24 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.chickenduy.locationApp.R
 
-class GPSView : AppCompatActivity() {
+class ActivitiesView : AppCompatActivity(){
 
-    private lateinit var gpsViewModel: GPSViewModel
+    private lateinit var activitiesViewModel: ActivitiesViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_gpsview)
+        setContentView(R.layout.activity_activitiesview)
 
-        val recyclerView = findViewById<RecyclerView>(R.id.gps_recyclerView)
-        val adapter = GPSListAdapter(this)
+        val recyclerView = findViewById<RecyclerView>(R.id.activities_recyclerview)
+        val adapter = ActivitiesListAdapter(this)
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
+        activitiesViewModel = ViewModelProvider(this).get(ActivitiesViewModel::class.java)
 
-        gpsViewModel = ViewModelProvider(this).get(GPSViewModel::class.java)
-
-        gpsViewModel.allGPS.observe(this, Observer { gps ->
+        activitiesViewModel.allActivities.observe(this, Observer { activities ->
             // Update the cached copy of the words in the adapter.
-            gps?.let { adapter.setList(it) }
+            activities?.let { adapter.setList(it) }
         })
+
     }
 }

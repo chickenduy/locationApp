@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.chickenduy.locationApp.backgroundServices.BackgroundService
+import com.chickenduy.locationApp.backgroundServices.GPSService
 import com.chickenduy.locationApp.backgroundServices.MyExceptionHandler
 import com.chickenduy.locationApp.ui.gps.GPSView
 
@@ -55,24 +56,8 @@ class MainActivity : AppCompatActivity() {
     private fun startBackgroundService() {
         val intent = Intent(this, BackgroundService::class.java)
         startService(intent)
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        //bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         Log.d("backgroundService","start BackgroundService")
-    }
-
-    private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(className: ComponentName, service: IBinder) {
-            val name = className.className
-            if (name.endsWith("BackgroundLocationService")) {
-                backgroundService = (service as BackgroundService.LocationServiceBinder).service
-                Log.d("GPS","GPS Ready")
-            }
-        }
-
-        override fun onServiceDisconnected(className: ComponentName) {
-            if (className.className == "BackgroundLocationService") {
-                backgroundService = null
-            }
-        }
     }
 
     fun viewGPS(view: View) {

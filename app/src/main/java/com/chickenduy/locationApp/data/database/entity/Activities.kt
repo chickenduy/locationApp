@@ -4,17 +4,21 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "gps_table")
-data class GPS (
+@Entity(tableName = "activities_table")
+data class Activities (
     @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "id")
     val id: Long,
+
+    @ColumnInfo(name = "gpsId")
+    val gpsId: Long,
 
     @ColumnInfo(name = "timestamp")
     val timestamp: Long,
 
-    @ColumnInfo(name = "longitude")
-    val longitude: Float,
+    @ColumnInfo(name = "enter")
+    val enter: Boolean,
 
-    @ColumnInfo(name = "latitude")
-    val latitude: Float
+    @ColumnInfo(name = "type")
+    val type: Int
     )

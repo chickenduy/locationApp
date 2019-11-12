@@ -17,8 +17,8 @@ interface GPSDao {
     @Insert(onConflict = ABORT)
     suspend fun insertAll(gps: List<GPS>)
 
-    @Query("SELECT * FROM gps_table WHERE timestamp = :timestamp LIMIT 1")
-    suspend fun getById(timestamp: Long): GPS
+    @Query("SELECT * FROM gps_table WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): GPS
 
     @Query("SELECT * FROM gps_table WHERE timestamp > :minTimestamp AND timestamp < :maxTimestamp ORDER BY timestamp DESC")
     suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<GPS>

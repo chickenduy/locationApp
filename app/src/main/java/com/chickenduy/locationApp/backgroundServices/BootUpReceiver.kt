@@ -6,7 +6,9 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat
 
-
+/**
+ * This class restarts the background service in case the user reboots his phone.
+ */
 class BootUpReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {

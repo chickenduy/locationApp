@@ -26,7 +26,7 @@ class GPSListAdapter internal constructor(context: Context) : RecyclerView.Adapt
         holder.itemDescription.text = "lat:${current.latitude} lon:${current.longitude}"
     }
 
-    internal fun setWords(gpsList: List<GPS>) {
+    internal fun setList(gpsList: List<GPS>) {
         this.gpsList = gpsList
         notifyDataSetChanged()
     }

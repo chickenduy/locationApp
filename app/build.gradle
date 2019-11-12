@@ -52,6 +52,9 @@ dependencies {
     // UI
     implementation "com.google.android.material:material:$rootProject.materialVersion"
 
+    // Google Play Services
+    implementation "com.google.android.gms:play-services-location:12.0.0"
+
     // Default dependencies
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"

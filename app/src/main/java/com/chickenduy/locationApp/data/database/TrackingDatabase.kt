@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.chickenduy.locationApp.data.database.dao.ActivitiesDao
 import com.chickenduy.locationApp.data.database.dao.GPSDao
 import com.chickenduy.locationApp.data.database.entity.GPS
 import kotlinx.coroutines.CoroutineScope
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 abstract class TrackingDatabase : RoomDatabase() {
 
     abstract fun gPSDao(): GPSDao
+    abstract fun activitiesDao(): ActivitiesDao
 
     private class GPSDatabaseCallback(
         private val scope: CoroutineScope
@@ -32,9 +34,9 @@ abstract class TrackingDatabase : RoomDatabase() {
             // Delete table
             gpsDao.deleteAll()
             // Add sample GPS.
-            var gps1 = GPS(1573472700000, 0F,0F)
+            var gps1 = GPS(1, 1573472700000, 0F,0F)
             gpsDao.insert(gps1)
-            gps1 = GPS(1573472701000,100F,100F)
+            gps1 = GPS(0, 1573472701000,100F,100F)
             gpsDao.insert(gps1)
         }
     }

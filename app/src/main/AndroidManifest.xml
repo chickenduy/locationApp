@@ -3,9 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.chickenduy.locationApp">
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
 
     <application
         android:allowBackup="true"
@@ -34,7 +36,8 @@
             android:name=".backgroundServices.BackgroundService"
             android:enabled="true"
             android:exported="true"
-            android:stopWithTask="false">
+            android:stopWithTask="false"
+            android:permission="TODO">
             <intent-filter>
                 <action android:name=".LOGGING_SERVICE" />
             </intent-filter>
@@ -46,6 +49,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
+
+        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.ActivityService"/>
+        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.GPSService"/>
+
+
     </application>
 
 </manifest>
