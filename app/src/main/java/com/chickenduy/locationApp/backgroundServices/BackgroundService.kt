@@ -10,8 +10,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesService
+import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
 
 class BackgroundService : Service() {
+
+    private val TAG = "BACKGROUNDSERVICE"
+
     private lateinit var notification: Notification
     private lateinit var gpsService: GPSService
 
@@ -20,8 +25,11 @@ class BackgroundService : Service() {
             notification = buildNotification(this)
             startForeground(1, notification)
         }
-        gpsService = GPSService(applicationContext)
-        ActivityRecognition(applicationContext)
+        gpsService =
+            GPSService(applicationContext)
+        ActivitiesService(
+            applicationContext
+        )
     }
 
     /**
@@ -78,7 +86,7 @@ class BackgroundService : Service() {
             Toast.LENGTH_SHORT
         ).show()
         Log.e(
-            "LOGGINGDESTROY",
+            TAG,
             "Service unexpectedly destroyed while GPSService was running. Will send broadcast to RestartReceiver."
         )
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
@@ -97,7 +105,7 @@ class BackgroundService : Service() {
             Toast.LENGTH_SHORT
         ).show()
         Log.e(
-            "LOGGINGREMOVED",
+            TAG,
             "Service unexpectedly destroyed while GPSService was running. Will send broadcast to RestartReceiver."
         )
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))

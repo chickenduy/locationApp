@@ -2,12 +2,10 @@ package com.chickenduy.locationApp.data.database.dao
 
 import androidx.lifecycle.LiveData
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy.ABORT
 import androidx.room.Query
 import com.chickenduy.locationApp.data.database.entity.GPS
-import java.util.Date
 
 @Dao
 interface GPSDao {
@@ -15,13 +13,16 @@ interface GPSDao {
     suspend fun insert(gps: GPS): Long
 
     @Insert(onConflict = ABORT)
-    suspend fun insertAll(gps: List<GPS>)
+    suspend fun insert(gps: List<GPS>)
 
     @Query("SELECT * FROM gps_table WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): GPS
 
     @Query("SELECT * FROM gps_table WHERE timestamp > :minTimestamp AND timestamp < :maxTimestamp ORDER BY timestamp DESC")
     suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<GPS>
+
+    @Query("SELECT * FROM gps_table  ORDER BY timestamp DESC Limit 10")
+    fun get10Recent(): LiveData<List<GPS>>
 
     @Query("SELECT * FROM gps_table  ORDER BY timestamp DESC")
     fun getAll(): LiveData<List<GPS>>

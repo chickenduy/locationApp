@@ -17,7 +17,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:name=".MyApp"
-        tools:ignore="GoogleAppIndexingWarning">
+        tools:ignore="GoogleAppIndexingWarning"
+        android:screenOrientation="portrait">
 
         <activity android:name=".ui.MainActivity">
             <intent-filter>
@@ -27,6 +28,12 @@
         </activity>
 
         <activity android:name=".ui.gps.GPSView">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.MainActivity" />
+        </activity>
+
+        <activity android:name=".ui.activity.ActivitiesView">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".ui.MainActivity" />
@@ -50,8 +57,8 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.ActivityService"/>
-        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.GPSService"/>
+        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesLogger"/>
+        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.gpsService.GPSLogger"/>
 
 
     </application>

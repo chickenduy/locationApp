@@ -1,6 +1,7 @@
 package com.chickenduy.locationApp.ui.activity
 
 import android.content.Context
+import android.os.Build.VERSION_CODES.N
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,7 +24,20 @@ class ActivitiesListAdapter internal constructor(context: Context) : RecyclerVie
     override fun onBindViewHolder(holder: ActivityViewHolder, position: Int) {
         val current = activitiesList[position]
         holder.itemDate.text = "${Date(current.timestamp)}"
-        holder.itemDescription.text = "gps:${current.gpsId} lon:${current.type}"
+        holder.itemDescription.text = "transition: ${if(current.enter == 0) "enter" else "leave\n"} activity: ${
+        when(current.type) {
+            0 -> "vehicle"
+            1 -> "on bicycle"
+            2 -> "on foot"
+            3 -> "still"
+            4 -> "unknown"
+            5 -> "tilting"
+            6 -> "N/A"
+            7 -> "walking"
+            8 -> "running"
+            else -> "something went wrong"
+        }
+        }"
     }
 
     internal fun setList(activitiesList: List<Activities>) {

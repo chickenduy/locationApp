@@ -1,13 +1,9 @@
 package com.chickenduy.locationApp.ui
 
 import android.Manifest
-import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -15,8 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.chickenduy.locationApp.backgroundServices.BackgroundService
-import com.chickenduy.locationApp.backgroundServices.GPSService
-import com.chickenduy.locationApp.backgroundServices.MyExceptionHandler
+import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
 
 
@@ -40,11 +35,11 @@ class MainActivity : AppCompatActivity() {
             startBackgroundService()
         }
 
-        Thread.setDefaultUncaughtExceptionHandler(
-            MyExceptionHandler(
-                this
-            )
-        )
+//        Thread.setDefaultUncaughtExceptionHandler(
+//            MyExceptionHandler(
+//                this
+//            )
+//        )
         if (intent.getBooleanExtra("crash", false)) {
             Toast.makeText(this, "App restarted after crash", Toast.LENGTH_SHORT).show()
         }
@@ -62,6 +57,10 @@ class MainActivity : AppCompatActivity() {
 
     fun viewGPS(view: View) {
         startActivity(Intent(this, GPSView::class.java))
+    }
+
+    fun viewActivities(view: View) {
+        startActivity(Intent(this, ActivitiesView::class.java))
     }
 
     fun crashMe(view: View) {

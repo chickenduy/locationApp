@@ -44,7 +44,8 @@
             android:id="@+id/button6"
             android:layout_width="match_parent"
             android:layout_height="60dp"
-            android:text="@string/trajectory" />
+            android:onClick="viewActivities"
+            android:text="@string/activities" />
 
         <Button
             android:layout_width="wrap_content"

@@ -10,15 +10,27 @@ data class Activities (
     @ColumnInfo(name = "id")
     val id: Long,
 
-    @ColumnInfo(name = "gpsId")
-    val gpsId: Long,
-
     @ColumnInfo(name = "timestamp")
     val timestamp: Long,
 
+    /**
+     * 0 - entering activity
+     * 1 - leaving activity
+     */
     @ColumnInfo(name = "enter")
-    val enter: Boolean,
+    val enter: Int,
 
+    /**
+     * 0 - in vehicle
+     * 1 - on bicycle
+     * 2 - on foot
+     * 3 - still
+     * 4 - unknown
+     * 5 - tilting
+     * 6 - N/A
+     * 7 - on foot -> walking
+     * 8 - on foot -> running
+     */
     @ColumnInfo(name = "type")
     val type: Int
     )

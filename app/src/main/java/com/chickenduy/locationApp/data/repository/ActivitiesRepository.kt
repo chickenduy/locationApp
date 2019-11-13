@@ -16,8 +16,10 @@ class ActivitiesRepository (
     }
 
     @WorkerThread
-    suspend fun insertAll(activities: List<Activities>) {
-        return activitiesDao.insertAll(activities)
+    suspend fun insert(activities: List<Activities>) {
+        activities.forEach{
+            insert(it)
+        }
     }
 
     @WorkerThread
@@ -26,13 +28,18 @@ class ActivitiesRepository (
     }
 
     @WorkerThread
-    fun getAll(): LiveData<List<Activities>> {
-        return activitiesDao.getAll()
+    suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Activities> {
+        return activitiesDao.getByTimestamp(minTimestamp, maxTimestamp)
     }
 
     @WorkerThread
-    suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Activities> {
-        return activitiesDao.getByTimestamp(minTimestamp, maxTimestamp)
+    fun get10Recent(): LiveData<List<Activities>> {
+        return activitiesDao.get10Recent()
+    }
+
+    @WorkerThread
+    fun getAll(): LiveData<List<Activities>> {
+        return activitiesDao.getAll()
     }
 
     @WorkerThread
