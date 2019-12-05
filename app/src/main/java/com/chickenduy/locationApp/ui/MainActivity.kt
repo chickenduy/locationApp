@@ -69,7 +69,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun crashMe(view: View) {
-        Log.d("MAIN", Textile.instance().online().toString())
-        Log.d("MAIN", Textile.instance().summary().accountPeerCount.toString())
+        Log.d("COMRECEIVER", "Start searching for P7qcaXrziXHw7dqxvoMMhpcvMZ74zcV4PBNswUYgTJr4GgjP")
+        val options = QueryOuterClass.QueryOptions.newBuilder()
+            .setLimit(1)
+            .build()
+        val query = QueryOuterClass.ContactQuery.newBuilder()
+            .setAddress("P7qcaXrziXHw7dqxvoMMhpcvMZ74zcV4PBNswUYgTJr4GgjP")
+            .build()
+        val searchQuery = Textile.instance().contacts.search(query, options)
     }
 }
