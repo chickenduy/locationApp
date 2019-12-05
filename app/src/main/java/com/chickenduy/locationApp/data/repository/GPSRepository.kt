@@ -9,7 +9,7 @@ import com.chickenduy.locationApp.data.database.entity.GPS
 class GPSRepository (
     private val gpsDao: GPSDao
 ) {
-    val allGPS: LiveData<List<GPS>> = get10Recent()
+    val allGPS: LiveData<List<GPS>> = getAll()
 
     @WorkerThread
     suspend fun insert(gps: GPS): Long {
@@ -36,6 +36,11 @@ class GPSRepository (
     @WorkerThread
     fun get10Recent(): LiveData<List<GPS>> {
         return gpsDao.get10Recent()
+    }
+
+    @WorkerThread
+    fun getAll(): LiveData<List<GPS>> {
+        return gpsDao.getAll()
     }
 
     @WorkerThread

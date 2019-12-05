@@ -11,7 +11,9 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesService
+import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
+import com.chickenduy.locationApp.backgroundServices.stepsService.StepsLogger
 
 class BackgroundService : Service() {
 
@@ -21,15 +23,28 @@ class BackgroundService : Service() {
     private lateinit var gpsService: GPSService
 
     override fun onCreate() {
+        Log.d(TAG, "Starting BackgroundSerivce")
         if (!this::notification.isInitialized) {
             notification = buildNotification(this)
             startForeground(1, notification)
         }
-        gpsService =
-            GPSService(applicationContext)
-        ActivitiesService(
-            applicationContext
-        )
+        // Start GPS Tracking
+        gpsService = GPSService(applicationContext)
+        // Start Activities Tracking
+        ActivitiesService(applicationContext)
+        // Start Steps Tracking
+        val stepsLogger = StepsLogger(applicationContext)
+        stepsLogger.run()
+        // Start Listening to Communication
+        val communicationService = CommunicationService()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        val newInterval = intent?.extras?.getInt("interval")
+        if(newInterval != null)
+            gpsService.startTracking(newInterval)
+        return START_STICKY
     }
 
     /**
@@ -44,7 +59,7 @@ class BackgroundService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 createNotificationChannel("my_service", "My Background Service")
             } else {
-                ""
+                "my_service"
             }
 
         val pendingIntent = PendingIntent.getActivity(context, 0, Intent(), 0)

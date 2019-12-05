@@ -11,13 +11,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.chickenduy.locationApp.backgroundServices.BackgroundService
+import com.chickenduy.locationApp.backgroundServices.MyExceptionHandler
 import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
+import com.chickenduy.locationApp.ui.steps.StepsView
+import io.textile.pb.QueryOuterClass
+import io.textile.textile.Textile
 
 
 class MainActivity : AppCompatActivity() {
-
-    var backgroundService: BackgroundService? = null
     private val PERMISSION_REQUEST_CODE = 200
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,11 +37,11 @@ class MainActivity : AppCompatActivity() {
             startBackgroundService()
         }
 
-//        Thread.setDefaultUncaughtExceptionHandler(
-//            MyExceptionHandler(
-//                this
-//            )
-//        )
+        Thread.setDefaultUncaughtExceptionHandler(
+            MyExceptionHandler(
+                this
+            )
+        )
         if (intent.getBooleanExtra("crash", false)) {
             Toast.makeText(this, "App restarted after crash", Toast.LENGTH_SHORT).show()
         }
@@ -52,7 +54,10 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, BackgroundService::class.java)
         startService(intent)
         //bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-        Log.d("backgroundService","start BackgroundService")
+    }
+
+    fun viewSteps(view: View) {
+        startActivity(Intent(this, StepsView::class.java))
     }
 
     fun viewGPS(view: View) {
@@ -64,6 +69,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun crashMe(view: View) {
-        throw NullPointerException()
+        Log.d("MAIN", Textile.instance().online().toString())
+        Log.d("MAIN", Textile.instance().summary().accountPeerCount.toString())
     }
 }

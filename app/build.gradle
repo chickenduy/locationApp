@@ -11,7 +11,7 @@ android {
     buildToolsVersion "29.0.2"
     defaultConfig {
         applicationId "com.chickenduy.locationApp"
-        minSdkVersion 19
+        minSdkVersion 24
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
@@ -25,6 +25,10 @@ android {
     }
     packagingOptions {
         exclude 'META-INF/atomicfu.kotlin_module'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
@@ -54,6 +58,9 @@ dependencies {
 
     // Google Play Services
     implementation "com.google.android.gms:play-services-location:12.0.0"
+
+    // Textile IPFS
+    implementation 'io.textile:textile:2.0.9'
 
     // Default dependencies
     implementation fileTree(dir: 'libs', include: ['*.jar'])

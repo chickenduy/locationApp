@@ -29,9 +29,9 @@ class ActivitiesService(private val context: Context) {
             val intent = Intent(context, ActivitiesLogger::class.java)
             mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
         }
-        GlobalScope.launch {
+        /*GlobalScope.launch {
             ActivitiesRepository(TrackingDatabase.getDatabase(context).activitiesDao()).deleteAll()
-        }
+        }*/
         launchTransitionsTracker()
     }
 
@@ -113,6 +113,7 @@ class ActivitiesService(private val context: Context) {
         val request = ActivityTransitionRequest(transitions)
 
         val task = activtiesProvider.requestActivityTransitionUpdates(request, mPendingIntent)
+        //val task = activtiesProvider.requestActivityUpdates(1000L, mPendingIntent)
 
         task.addOnFailureListener { e: Exception ->
             Log.e("TAG", e.message!!)

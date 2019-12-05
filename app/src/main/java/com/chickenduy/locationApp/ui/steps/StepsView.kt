@@ -1,4 +1,4 @@
-package com.chickenduy.locationApp.ui.activity
+package com.chickenduy.locationApp.ui.steps
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -8,24 +8,24 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.chickenduy.locationApp.R
 
-class ActivitiesView : AppCompatActivity(){
+class StepsView : AppCompatActivity() {
 
-    private lateinit var activitiesViewModel: ActivitiesViewModel
+    private lateinit var stepsViewModel: StepsViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_activitiesview)
+        setContentView(R.layout.activity_stepsview)
 
-        val recyclerView = findViewById<RecyclerView>(R.id.activities_recyclerView)
-        val adapter = ActivitiesListAdapter(this)
+        val recyclerView = findViewById<RecyclerView>(R.id.steps_recyclerView)
+        val adapter = StepsListAdapter(this)
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
-        activitiesViewModel = ViewModelProvider(this).get(ActivitiesViewModel::class.java)
 
-        activitiesViewModel.allActivities.observe(this, Observer { activities ->
+        stepsViewModel = ViewModelProvider(this).get(StepsViewModel::class.java)
+
+        stepsViewModel.allSteps.observe(this, Observer { Steps ->
             // Update the cached copy of the words in the adapter.
-            activities?.let { adapter.setList(it) }
+            Steps?.let { adapter.setList(it) }
         })
-
     }
 }

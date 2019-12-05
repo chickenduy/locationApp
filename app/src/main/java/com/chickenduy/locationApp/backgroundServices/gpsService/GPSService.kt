@@ -22,9 +22,8 @@ class GPSService(private val context: Context) {
     private lateinit var request: LocationRequest
     private lateinit var mPendingIntent: PendingIntent
 
-    private val FREQUENCY_HIGH = 1000L
-    private val FREQUENCY_MEDIUM = 5000L
-    private val FREQUENCY_LOW = 60000L
+    private val DEFAULTINTERVAL = 60
+    private val MILSECONDS = 1000L
 
     init {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -35,21 +34,22 @@ class GPSService(private val context: Context) {
             mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
         }
 
-        GlobalScope.launch {
+        /*GlobalScope.launch {
             GPSRepository(TrackingDatabase.getDatabase(context).gPSDao()).deleteAll()
-        }
-        startTracking()
+        }*/
+        startTracking(DEFAULTINTERVAL)
     }
 
-    private fun startTracking() {
+    fun startTracking(interval: Int) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
+            Log.d(TAG, "change interval speed to $interval seconds ")
             request = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setFastestInterval(FREQUENCY_HIGH)
-                .setMaxWaitTime(10000L)
-                .setInterval(1000L)
+                .setFastestInterval(MILSECONDS)
+                .setMaxWaitTime(2*MILSECONDS*interval)
+                .setInterval(MILSECONDS*interval)
 
             //locationProvider.flushLocations()
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)
@@ -61,5 +61,6 @@ class GPSService(private val context: Context) {
         else
             Log.e("LOCATION_UPDATES", "We have no location permission")
     }
+
 }
 
