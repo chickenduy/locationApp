@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesService
+import com.chickenduy.locationApp.backgroundServices.communicationService.ComService
 import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
 import com.chickenduy.locationApp.backgroundServices.stepsService.StepsLogger
@@ -36,7 +37,7 @@ class BackgroundService : Service() {
         val stepsLogger = StepsLogger(applicationContext)
         stepsLogger.run()
         // Start Listening to Communication
-        val communicationService = CommunicationService()
+        val communicationService = ComService()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

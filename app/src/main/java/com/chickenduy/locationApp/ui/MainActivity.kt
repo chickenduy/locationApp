@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -15,8 +14,6 @@ import com.chickenduy.locationApp.backgroundServices.MyExceptionHandler
 import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
 import com.chickenduy.locationApp.ui.steps.StepsView
-import io.textile.pb.QueryOuterClass
-import io.textile.textile.Textile
 
 
 class MainActivity : AppCompatActivity() {
@@ -69,7 +66,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun crashMe(view: View) {
-        Log.d("MAIN", Textile.instance().online().toString())
-        Log.d("MAIN", Textile.instance().summary().accountPeerCount.toString())
+
     }
 }
