@@ -10,6 +10,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesService
 import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
@@ -21,6 +22,8 @@ class BackgroundService : Service() {
 
     private lateinit var notification: Notification
     private lateinit var gpsService: GPSService
+    private lateinit var activitiesService: ActivitiesService
+    private lateinit var communicationService: CommunicationService
 
     override fun onCreate() {
         Log.d(TAG, "Starting BackgroundSerivce")
@@ -31,17 +34,17 @@ class BackgroundService : Service() {
         // Start GPS Tracking
         gpsService = GPSService(applicationContext)
         // Start Activities Tracking
-        ActivitiesService(applicationContext)
+        activitiesService = ActivitiesService(applicationContext)
         // Start Steps Tracking
         val stepsLogger = StepsLogger(applicationContext)
         stepsLogger.run()
         // Start Listening to Communication
-        val communicationService = CommunicationService()
+        communicationService = CommunicationService(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        val newInterval = intent?.extras?.getInt("interval")
+        val newInterval = intent?.extras?.getInt("activity")
         if(newInterval != null)
             gpsService.startTracking(newInterval)
         return START_STICKY
@@ -67,7 +70,7 @@ class BackgroundService : Service() {
         return NotificationCompat.Builder(context, channelId)
             .setContentTitle("Ongoing Tracking")
             .setContentText("Please don't force quit the app")
-            //.setSmallIcon(R.drawable.ic_launcher_background)
+            .setSmallIcon(R.drawable.ic_launcher_background)
             .setContentIntent(pendingIntent)
             .setTicker("Test")
             .setOngoing(true)

@@ -7,13 +7,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.chickenduy.locationApp.data.database.TrackingDatabase
-import com.chickenduy.locationApp.data.repository.GPSRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
 class GPSService(private val context: Context) {
     private val TAG = "GPSSERVICE"
@@ -40,16 +36,25 @@ class GPSService(private val context: Context) {
         startTracking(DEFAULTINTERVAL)
     }
 
-    fun startTracking(interval: Int) {
+    fun startTracking(activity: Int) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            Log.d(TAG, "change interval speed to $interval seconds ")
+            var interval = 0L
+            interval = when(activity){
+                0 -> 1000*60*10 //still
+                1 -> 1000*60 //walking
+                2 -> 1000*30 //running
+                3 -> 1000*10 //biking
+                4 -> 1000 //vehicle
+                else -> 1000
+            }
+
+            Log.d(TAG, "change interval speed for ${interval/1000}s")
             request = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setFastestInterval(MILSECONDS)
-                .setMaxWaitTime(2*MILSECONDS*interval)
-                .setInterval(MILSECONDS*interval)
+                .setInterval(interval)
+                .setMaxWaitTime(1000*60*10)
 
             //locationProvider.flushLocations()
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)

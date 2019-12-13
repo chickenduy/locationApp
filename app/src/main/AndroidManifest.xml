@@ -60,6 +60,17 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".backgroundServices.communicationService.CommunicationService"
+            android:enabled="true"
+            android:exported="true"
+            android:stopWithTask="false"
+            android:permission="TODO">
+            <intent-filter>
+                <action android:name=".COM_SERVICE" />
+            </intent-filter>
+        </service>
+
         <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.BootUpReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

@@ -3,8 +3,8 @@ package com.chickenduy.locationApp.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -15,9 +15,6 @@ import com.chickenduy.locationApp.backgroundServices.MyExceptionHandler
 import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
 import com.chickenduy.locationApp.ui.steps.StepsView
-import io.textile.pb.QueryOuterClass
-import io.textile.textile.Textile
-
 
 class MainActivity : AppCompatActivity() {
     private val PERMISSION_REQUEST_CODE = 200
@@ -52,7 +49,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun startBackgroundService() {
         val intent = Intent(this, BackgroundService::class.java)
-        startService(intent)
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            startForegroundService(intent)
+        }
+        else {
+            startService(intent)
+        }
         //bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
@@ -69,13 +71,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun crashMe(view: View) {
-        Log.d("COMRECEIVER", "Start searching for P7qcaXrziXHw7dqxvoMMhpcvMZ74zcV4PBNswUYgTJr4GgjP")
-        val options = QueryOuterClass.QueryOptions.newBuilder()
-            .setLimit(1)
-            .build()
-        val query = QueryOuterClass.ContactQuery.newBuilder()
-            .setAddress("P7qcaXrziXHw7dqxvoMMhpcvMZ74zcV4PBNswUYgTJr4GgjP")
-            .build()
-        val searchQuery = Textile.instance().contacts.search(query, options)
+
     }
 }
