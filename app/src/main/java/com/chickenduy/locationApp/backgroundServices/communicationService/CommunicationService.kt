@@ -25,7 +25,6 @@ class CommunicationService {
             val filesDir = ctx.filesDir
             val path = File(filesDir, "ipfslite").absolutePath
             litePeer = Peer(path, BuildConfig.DEBUG)
-            Peer.start()
 
             Log.d(TAG, litePeer.started().toString())
 

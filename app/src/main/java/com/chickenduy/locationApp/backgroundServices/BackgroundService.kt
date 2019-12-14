@@ -37,7 +37,7 @@ class BackgroundService : Service() {
         val stepsLogger = StepsLogger(applicationContext)
         stepsLogger.run()
         // Start Listening to Communication
-        val communicationService = ComService()
+        val communicationService = ComService(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

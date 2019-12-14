@@ -60,9 +60,6 @@ dependencies {
     // Google Play Services
     implementation 'com.google.android.gms:play-services-location:17.0.0'
 
-    // Textile IPFS
-    //implementation 'io.textile:textile:2.1.0'
-
     // Textile IPFS lite
     implementation 'io.textile:ipfslite:0.0.1-rc3'
 

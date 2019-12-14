@@ -15,7 +15,6 @@ import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
 import com.chickenduy.locationApp.ui.steps.StepsView
 
-
 class MainActivity : AppCompatActivity() {
     private val PERMISSION_REQUEST_CODE = 200
 
