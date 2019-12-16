@@ -12,6 +12,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesService
+import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
 import com.chickenduy.locationApp.backgroundServices.stepsService.StepsLogger
 import com.chickenduy.locationApp.utility.RegisterForPushNotificationsAsync
@@ -24,6 +25,7 @@ class BackgroundService : Service() {
     private lateinit var notification: Notification
     private lateinit var gpsService: GPSService
     private lateinit var activitiesService: ActivitiesService
+    private lateinit var communicationService: CommunicationService
 
     override fun onCreate() {
         Log.d(TAG, "Starting BackgroundSerivce")
@@ -43,7 +45,7 @@ class BackgroundService : Service() {
             RegisterForPushNotificationsAsync().execute()
         }
         Pushy.listen(this)
-
+        communicationService = CommunicationService(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

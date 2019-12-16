@@ -34,7 +34,11 @@ android {
 }
 
 dependencies {
+    // Pushy Notifications
     implementation 'me.pushy:sdk:1.0.54'
+
+    // REST API components
+    implementation 'com.android.volley:volley:1.1.1'
 
     // Google Services
     implementation "com.google.android.gms:play-services-location:17.0.0"
