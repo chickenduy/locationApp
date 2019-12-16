@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -15,6 +16,8 @@ import com.chickenduy.locationApp.backgroundServices.MyExceptionHandler
 import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
 import com.chickenduy.locationApp.ui.steps.StepsView
+import com.google.android.gms.tasks.OnCompleteListener
+import com.google.firebase.iid.FirebaseInstanceId
 
 class MainActivity : AppCompatActivity() {
     private val PERMISSION_REQUEST_CODE = 200
@@ -34,6 +37,22 @@ class MainActivity : AppCompatActivity() {
             startBackgroundService()
         }
 
+        if (ContextCompat.checkSelfPermission(
+                applicationContext,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) { // Request both READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE so that the
+// Pushy SDK will be able to persist the device token in the external storage
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ),
+                0
+            )
+        }
+
         Thread.setDefaultUncaughtExceptionHandler(
             MyExceptionHandler(
                 this
@@ -45,6 +64,18 @@ class MainActivity : AppCompatActivity() {
         if (intent.getBooleanExtra("reboot", false)) {
             Toast.makeText(this, "App restarted after reboot", Toast.LENGTH_SHORT).show()
         }
+
+        FirebaseInstanceId.getInstance().instanceId
+            .addOnCompleteListener(OnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w("COMSERVICE", "getInstanceId failed", task.exception)
+                    return@OnCompleteListener
+                }
+                // Get new Instance ID token
+                val token = task.result?.token
+                // Log and toast
+                Log.d("MAIN", token)
+            })
     }
 
     private fun startBackgroundService() {
