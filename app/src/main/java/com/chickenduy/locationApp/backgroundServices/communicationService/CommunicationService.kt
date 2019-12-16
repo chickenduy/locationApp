@@ -31,7 +31,7 @@ class CommunicationService(private val ctx: Context)  {
 
     private fun registerDevice() {
         val queue = Volley.newRequestQueue(this.ctx)
-        val url = "http://10.0.2.2:8000/user"
+        val url = "http://10.0.2.2:8000/test"
         val jsonBody = JSONObject()
         jsonBody.put("test", 1)
         val res = Response.Listener<JSONObject> { response ->
