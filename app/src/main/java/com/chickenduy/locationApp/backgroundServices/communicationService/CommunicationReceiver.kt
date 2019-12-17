@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 
-
+//Pushy Notification Receiver
 class CommunicationReceiver: BroadcastReceiver() {
 
     private val TAG = "COMRECEIVER"

@@ -1,8 +1,10 @@
 package com.chickenduy.locationApp.backgroundServices
 
+import android.Manifest
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
@@ -10,6 +12,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesService
 import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
@@ -40,12 +43,15 @@ class BackgroundService : Service() {
         // Start Steps Tracking
         val stepsLogger = StepsLogger(applicationContext)
         stepsLogger.run()
-        // Start Listening to Communication
-        if (!Pushy.isRegistered(applicationContext)) {
-            RegisterForPushNotificationsAsync().execute()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                // Start Listening to Communication
+                listenToNotifications()
+            }
         }
-        Pushy.listen(this)
-        communicationService = CommunicationService(applicationContext)
+        else {
+            listenToNotifications()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -54,6 +60,14 @@ class BackgroundService : Service() {
         if(newInterval != null)
             gpsService.startTracking(newInterval)
         return START_STICKY
+    }
+
+    private fun listenToNotifications() {
+        if (!Pushy.isRegistered(applicationContext)) {
+            RegisterForPushNotificationsAsync().execute()
+        }
+        Pushy.listen(this)
+        communicationService = CommunicationService(applicationContext)
     }
 
     /**
