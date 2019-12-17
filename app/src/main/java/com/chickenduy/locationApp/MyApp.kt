@@ -1,7 +1,6 @@
 package com.chickenduy.locationApp
 
 import android.app.Application
-//import androidx.multidex.MultiDexApplication
 
 class MyApp : Application() {
 
