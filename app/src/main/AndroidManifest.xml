@@ -24,8 +24,7 @@
         android:theme="@style/AppTheme"
         android:name=".MyApp"
         tools:ignore="GoogleAppIndexingWarning"
-        android:screenOrientation="portrait"
-        android:usesCleartextTraffic="true">
+        android:screenOrientation="portrait">
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

@@ -13,4 +13,5 @@ class CommunicationReceiver: BroadcastReceiver() {
         Log.d(TAG, "Received Notification")
     }
 
+
 }

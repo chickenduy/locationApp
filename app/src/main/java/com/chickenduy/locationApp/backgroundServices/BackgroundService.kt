@@ -43,15 +43,7 @@ class BackgroundService : Service() {
         // Start Steps Tracking
         val stepsLogger = StepsLogger(applicationContext)
         stepsLogger.run()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                // Start Listening to Communication
-                listenToNotifications()
-            }
-        }
-        else {
-            listenToNotifications()
-        }
+        communicationService = CommunicationService(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -60,14 +52,6 @@ class BackgroundService : Service() {
         if(newInterval != null)
             gpsService.startTracking(newInterval)
         return START_STICKY
-    }
-
-    private fun listenToNotifications() {
-        if (!Pushy.isRegistered(applicationContext)) {
-            RegisterForPushNotificationsAsync().execute()
-        }
-        Pushy.listen(this)
-        communicationService = CommunicationService(applicationContext)
     }
 
     /**

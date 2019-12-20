@@ -9,11 +9,11 @@ import java.net.URL
 
 class RegisterForPushNotificationsAsync: AsyncTask<Void?, Void?, Exception?>() {
     override fun doInBackground(vararg p0: Void?): Exception? {
-        try { // Assign a unique token to this device
-            val deviceToken =
-                Pushy.register(MyApp.instance)
+        try {
+            // Assign a unique token to this device
+            val deviceToken = Pushy.register(MyApp.instance)
             // Log it for debugging purposes
-            Log.d("MyApp", "Pushy device token: $deviceToken")
+            Log.d("COMSERVICE", "Pushy device token: $deviceToken")
             // Send the token to your backend server via an HTTP GET request
             //URL("https://{YOUR_API_HOSTNAME}/register/device?token=$deviceToken").openConnection()
         } catch (exc: Exception) { // Return exc to onPostExecute
