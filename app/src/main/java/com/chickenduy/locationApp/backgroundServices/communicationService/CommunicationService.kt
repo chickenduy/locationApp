@@ -26,31 +26,30 @@ class CommunicationService(private val ctx: Context) {
     private var isRegistered: Boolean = false
     private lateinit var token: String
     private val serverLink = "https://locationserver.eu-gb.mybluemix.net/"
+    private val queue = Volley.newRequestQueue(this.ctx)
 
+    // On app start
     init {
-        Thread(Runnable {
-            registerDevice()
-        }).start()
         Log.d(TAG, "init coms")
-        isRegistered = sharedPref.getBoolean(ISREGISTERED, false) || sharedPref.contains(ISREGISTERED)
-        if (!isRegistered) {
-            if (Pushy.getDeviceCredentials(ctx).token != null) {
-                token = Pushy.getDeviceCredentials(ctx).token
+        // First time app start
+        if (!sharedPref.contains(ISREGISTERED)) {
+            Thread(Runnable {
+                registerDevice()
+            }).start()
+        }
+        else {
+            // registered on node
+            if (sharedPref.getBoolean(ISREGISTERED, false)) {
+                pingNode()
             }
+            // registered device but registration on node failed
             else {
                 Thread(Runnable {
                     registerDevice()
                 }).start()
             }
         }
-        else {
-            token = Pushy.getDeviceCredentials(ctx).token
-            Pushy.listen(ctx)
-            Thread(Runnable {
-                Pushy.subscribe("online", ctx)
-                Log.d(TAG, "subscribed to online")
-            }).start()
-        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 Log.e(TAG, "You will loose token upon uninstall.")
@@ -58,44 +57,64 @@ class CommunicationService(private val ctx: Context) {
         }
     }
 
-    private fun registerDevice() {
-        token = Pushy.register(ctx)
-        if (token.isEmpty()) {
-            sharedPref.edit().putBoolean(ISREGISTERED, true).apply()
-        }
-        val queue = Volley.newRequestQueue(this.ctx)
-        val publicKey: String
+    private fun pingNode() {
+        Log.d(TAG, "Pinging Server")
+        token = Pushy.getDeviceCredentials(ctx).token
 
-        if(!sharedPref.contains(PUBLICKEY)) {
+        val pingRequest = JSONObject()
+        pingRequest.put("request", "find")
+        pingRequest.put("id", token)
+
+        val res = Response.Listener<JSONObject> { response ->
+            Log.d(TAG, response.toString())
+            val responseCode = response.get("status")
+        }
+
+        val err = Response.ErrorListener {
+            Log.e(TAG, "test")
+            Log.e(TAG, it.message.toString())
+        }
+
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverLink + "user", pingRequest, res, err)
+        queue.add(jsonRequest)
+    }
+
+    private fun registerDevice() {
+        Log.d(TAG, "Register Device")
+        token = if (!Pushy.isRegistered(ctx)) Pushy.register(ctx) else Pushy.getDeviceCredentials(ctx).token
+
+        var publicKey = sharedPref.getString(PUBLICKEY, "")
+
+        if(sharedPref.contains(PUBLICKEY) || publicKey == "") {
             val keyGen = KeyPairGenerator.getInstance("RSA")
             keyGen.initialize(2048)
             val keyPair = keyGen.genKeyPair()
             publicKey = "-----BEGIN PUBLIC KEY-----\n" +
                     Base64.encodeToString(keyPair.public.encoded, Base64.DEFAULT) +
                     "-----END PUBLIC KEY-----"
-            Log.d(TAG, publicKey)
             val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
             cipher.init(Cipher.ENCRYPT_MODE, keyPair.public)
+
             with(sharedPref.edit()) {
                 putString(PUBLICKEY, Base64.encodeToString(keyPair.public.encoded, Base64.DEFAULT))
                 putString("publicKeyRaw", publicKey)
                 putString(PRIVATEKEY, Base64.encodeToString(keyPair.private.encoded, Base64.DEFAULT))
+                apply()
             }
-            sharedPref.edit().putString(PUBLICKEY, publicKey).apply()
-        }
-        else {
-            publicKey = sharedPref.getString(PUBLICKEY, "").toString()
         }
 
+        Log.d(TAG, publicKey)
+
         val request = JSONObject()
+        request.put("request", "create")
         request.put("id", token)
         request.put(PUBLICKEY, publicKey)
 
+        Log.d(TAG, request.toString())
+
         val res = Response.Listener<JSONObject> { response ->
             Log.d(TAG, response.toString())
-            val responseCode = response.get("status")
-            Log.d(TAG, responseCode.toString())
-            if (responseCode == "success") {
+            if (response.get("status") == "success") {
                 sharedPref.edit().putBoolean("isRegistered", true).apply()
             }
             else {
