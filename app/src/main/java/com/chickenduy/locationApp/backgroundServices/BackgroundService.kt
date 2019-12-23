@@ -1,10 +1,8 @@
 package com.chickenduy.locationApp.backgroundServices
 
-import android.Manifest
 import android.app.*
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
@@ -12,14 +10,11 @@ import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesService
 import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
 import com.chickenduy.locationApp.backgroundServices.stepsService.StepsLogger
-import com.chickenduy.locationApp.utility.RegisterForPushNotificationsAsync
-import me.pushy.sdk.Pushy
 
 class BackgroundService : Service() {
 

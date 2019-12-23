@@ -22,15 +22,19 @@ class CommunicationService(private val ctx: Context) {
     private val PUBLICKEY = "publicKey"
     private val PRIVATEKEY = "privateKey"
     private val ISREGISTERED = "isRegistered"
+    private val PASSWORD = "password"
     private val sharedPref = ctx.getSharedPreferences("options", Context.MODE_PRIVATE)
-    private var isRegistered: Boolean = false
     private lateinit var token: String
-    private val serverLink = "https://locationserver.eu-gb.mybluemix.net/"
+    private val serverURI = "https://locationserver.eu-gb.mybluemix.net/"
     private val queue = Volley.newRequestQueue(this.ctx)
 
     // On app start
     init {
         Log.d(TAG, "init coms")
+//        Thread(Runnable {
+//            registerDevice()
+//        }).start()
+
         // First time app start
         if (!sharedPref.contains(ISREGISTERED)) {
             Thread(Runnable {
@@ -40,7 +44,7 @@ class CommunicationService(private val ctx: Context) {
         else {
             // registered on node
             if (sharedPref.getBoolean(ISREGISTERED, false)) {
-                pingNode()
+                updateDevice()
             }
             // registered device but registration on node failed
             else {
@@ -49,42 +53,49 @@ class CommunicationService(private val ctx: Context) {
                 }).start()
             }
         }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 Log.e(TAG, "You will loose token upon uninstall.")
             }
         }
+        Pushy.listen(ctx)
+        Thread(Runnable {
+            Pushy.subscribe("online", ctx)
+        }).start()
     }
 
-    private fun pingNode() {
+    private fun updateDevice() {
         Log.d(TAG, "Pinging Server")
         token = Pushy.getDeviceCredentials(ctx).token
 
         val pingRequest = JSONObject()
-        pingRequest.put("request", "find")
         pingRequest.put("id", token)
+        pingRequest.put(PASSWORD, sharedPref.getString(PASSWORD, "") )
 
         val res = Response.Listener<JSONObject> { response ->
             Log.d(TAG, response.toString())
-            val responseCode = response.get("status")
         }
 
-        val err = Response.ErrorListener {
-            Log.e(TAG, "test")
-            Log.e(TAG, it.message.toString())
+        val err = Response.ErrorListener { response ->
+            Log.e(TAG, response.toString())
         }
 
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverLink + "user", pingRequest, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.PATCH, serverURI + "user", pingRequest, res, err)
         queue.add(jsonRequest)
     }
 
+    /**
+     * Register the device on Pushy and Node server
+     */
     private fun registerDevice() {
         Log.d(TAG, "Register Device")
         token = if (!Pushy.isRegistered(ctx)) Pushy.register(ctx) else Pushy.getDeviceCredentials(ctx).token
 
         var publicKey = sharedPref.getString(PUBLICKEY, "")
 
+        /**
+         * Create RSA Keypair for encryption
+         */
         if(sharedPref.contains(PUBLICKEY) || publicKey == "") {
             val keyGen = KeyPairGenerator.getInstance("RSA")
             keyGen.initialize(2048)
@@ -103,30 +114,25 @@ class CommunicationService(private val ctx: Context) {
             }
         }
 
-        Log.d(TAG, publicKey)
-
         val request = JSONObject()
-        request.put("request", "create")
         request.put("id", token)
         request.put(PUBLICKEY, publicKey)
 
-        Log.d(TAG, request.toString())
-
         val res = Response.Listener<JSONObject> { response ->
             Log.d(TAG, response.toString())
-            if (response.get("status") == "success") {
-                sharedPref.edit().putBoolean("isRegistered", true).apply()
-            }
-            else {
-                sharedPref.edit().putBoolean("isRegistered", false).apply()
+            with(sharedPref.edit()) {
+                putBoolean(ISREGISTERED, true)
+                putString(PASSWORD, response.getString(PASSWORD))
+                apply()
             }
         }
 
         val err = Response.ErrorListener {
             Log.e(TAG, it.message.toString())
+            sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
         }
 
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverLink + "user", request, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "user", request, res, err)
         queue.add(jsonRequest)
     }
 
