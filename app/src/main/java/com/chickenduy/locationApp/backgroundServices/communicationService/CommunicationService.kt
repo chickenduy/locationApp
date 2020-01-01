@@ -26,6 +26,7 @@ class CommunicationService(private val ctx: Context) {
     private val sharedPref = ctx.getSharedPreferences("options", Context.MODE_PRIVATE)
     private lateinit var token: String
     private val serverURI = "https://locationserver.eu-gb.mybluemix.net/"
+    private val testURI = "10.0.2.2:3000"
     private val queue = Volley.newRequestQueue(this.ctx)
 
     // On app start
@@ -39,6 +40,8 @@ class CommunicationService(private val ctx: Context) {
         if (!sharedPref.contains(ISREGISTERED)) {
             Thread(Runnable {
                 registerDevice()
+                Pushy.listen(ctx)
+                Pushy.subscribe("online", ctx)
             }).start()
         }
         else {
@@ -52,16 +55,16 @@ class CommunicationService(private val ctx: Context) {
                     registerDevice()
                 }).start()
             }
+            Pushy.listen(ctx)
+            Thread(Runnable {
+                Pushy.subscribe("online", ctx)
+            }).start()
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 Log.e(TAG, "You will loose token upon uninstall.")
             }
         }
-        Pushy.listen(ctx)
-        Thread(Runnable {
-            Pushy.subscribe("online", ctx)
-        }).start()
     }
 
     private fun updateDevice() {
@@ -78,9 +81,13 @@ class CommunicationService(private val ctx: Context) {
 
         val err = Response.ErrorListener { response ->
             Log.e(TAG, response.toString())
+            sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
+            Thread(Runnable {
+                Pushy.subscribe("online", ctx)
+            }).start()
         }
 
-        val jsonRequest = JsonObjectRequest(Request.Method.PATCH, serverURI + "user", pingRequest, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.PATCH, serverURI + "crowd/ping", pingRequest, res, err)
         queue.add(jsonRequest)
     }
 
@@ -132,7 +139,7 @@ class CommunicationService(private val ctx: Context) {
             sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
         }
 
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "user", request, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "crowd", request, res, err)
         queue.add(jsonRequest)
     }
 

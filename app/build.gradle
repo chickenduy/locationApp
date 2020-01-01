@@ -48,19 +48,13 @@ dependencies {
     implementation "androidx.room:room-ktx:$rootProject.roomVersion"
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     kapt "androidx.room:room-compiler:$rootProject.roomVersion"
-    androidTestImplementation "androidx.room:room-testing:$rootProject.roomVersion"
 
     // Lifecycle components
     implementation "androidx.lifecycle:lifecycle-extensions:$rootProject.archLifecycleVersion"
-    implementation "androidx.lifecycle:lifecycle-extensions:${archLifecycleVersion}"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:${archLifecycleVersion}"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$rootProject.archLifecycleVersion"
     //kapt "androidx.lifecycle:lifecycle-compiler:$rootProject.archLifecycleVersion"
-    androidTestImplementation "androidx.arch.core:core-testing:$rootProject.androidxArchVersion"
     implementation "androidx.lifecycle:lifecycle-common-java8:2.1.0"
     //implementation 'com.android.support:multidex:1.0.3'
-
-    // ViewModel Kotlin support
-    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$rootProject.archLifecycleVersion"
 
     // Coroutines
     api "org.jetbrains.kotlinx:kotlinx-coroutines-android:$rootProject.coroutines"

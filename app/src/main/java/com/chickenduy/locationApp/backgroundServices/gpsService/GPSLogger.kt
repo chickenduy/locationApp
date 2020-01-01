@@ -3,6 +3,7 @@ package com.chickenduy.locationApp.backgroundServices.gpsService
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings
 import android.util.Log
 import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.data.database.TrackingDatabase

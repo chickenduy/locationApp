@@ -5,22 +5,17 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
+import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.backgroundServices.BackgroundService
 import com.chickenduy.locationApp.backgroundServices.MyExceptionHandler
 import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
 import com.chickenduy.locationApp.ui.steps.StepsView
-import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
     private val ACCESS_FINE_LOCATION_REQUEST_CODE = 1
@@ -28,7 +23,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(com.chickenduy.locationApp.R.layout.activity_main)
+        setContentView(R.layout.activity_main)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -101,21 +96,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun crashMe(view: View) {
-        val queue = Volley.newRequestQueue(this)
-        val url = "https://api.pushy.me/push?api_key=cfd5f664afd97266ed8ec89ac697b9dcded0afced39635320fc5bfb7a950c705"
-        val message = JSONObject()
-        message.put("to","657c59e3f5faeaf7005e04")
-        val data = JSONObject()
-        data.put("test","test")
-        message.put("data", data)
-        val res = Response.Listener<JSONObject> { response ->
-            Log.d("COMS", response.toString())
-            //sharedPref.edit().putBoolean("isRegistered", true).commit()
-        }
-        val err = Response.ErrorListener {
-            Log.e("COMS", it.message)
-        }
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, url, message, res, err)
-        queue.add(jsonRequest)
+        
     }
 }

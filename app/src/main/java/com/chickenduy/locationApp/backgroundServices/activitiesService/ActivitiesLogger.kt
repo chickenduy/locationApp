@@ -21,7 +21,6 @@ class ActivitiesLogger: BroadcastReceiver() {
 
     private val activitiesRepository: ActivitiesRepository = ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
 
-
     override fun onReceive(context: Context, intent: Intent) {
         if(ActivityTransitionResult.hasResult(intent))
         {
@@ -38,7 +37,7 @@ class ActivitiesLogger: BroadcastReceiver() {
 
             detectedActivities.forEach{
                 val now = Date().time
-                val activities = Activities(
+                val activity = Activities(
                     0L,
                     now,
                     it.transitionType,
@@ -46,7 +45,7 @@ class ActivitiesLogger: BroadcastReceiver() {
                 )
                 Log.d(TAG, "Saving activities")
                 GlobalScope.launch {
-                    activitiesRepository.insert(activities)
+                    activitiesRepository.insert(activity)
                     Log.d(TAG, "Saved activities")
                 }
             }
@@ -87,7 +86,7 @@ class ActivitiesLogger: BroadcastReceiver() {
                 i.putExtra("activity", 2)
             }
             DetectedActivity.ON_BICYCLE -> {
-                Log.d(TAG, "change to bycicle")
+                Log.d(TAG, "change to bicycle")
                 i.putExtra("activity", 3)
             }
             DetectedActivity.IN_VEHICLE -> {
@@ -96,7 +95,7 @@ class ActivitiesLogger: BroadcastReceiver() {
             }
             else -> {
                 Log.d(TAG, "change to else")
-                i.putExtra("activity", 1)
+                i.putExtra("activity", 0)
             }
         }
         context.startService(i)
