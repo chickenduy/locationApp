@@ -29,11 +29,10 @@ class StepsLogger(private val context: Context): Runnable, SensorEventListener {
         Log.d(TAG,"Starting StepsLogger")
         sensorManager = context.getSystemService(SENSOR_SERVICE) as SensorManager
         val stepsSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-        Log.e(TAG, "$stepsSensor")
         stepsRepository = StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
-        GlobalScope.launch {
-            stepsRepository.deleteAll()
-        }
+//        GlobalScope.launch {
+//            stepsRepository.deleteAll()
+//        }
 
         if (stepsSensor != null) {
             TrackingDatabase.hasStepCounter = true

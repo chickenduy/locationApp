@@ -24,9 +24,10 @@ class BackgroundService : Service() {
     private lateinit var gpsService: GPSService
     private lateinit var activitiesService: ActivitiesService
     private lateinit var communicationService: CommunicationService
+    private lateinit var stepsLogger: StepsLogger
 
     override fun onCreate() {
-        Log.d(TAG, "Starting BackgroundSerivce")
+        Log.d(TAG, "Starting BackgroundService")
         if (!this::notification.isInitialized) {
             notification = buildNotification(this)
             startForeground(1, notification)
@@ -36,12 +37,13 @@ class BackgroundService : Service() {
         // Start Activities Tracking
         activitiesService = ActivitiesService(applicationContext)
         // Start Steps Tracking
-        val stepsLogger = StepsLogger(applicationContext)
-        stepsLogger.run()
+        stepsLogger = StepsLogger(applicationContext)
+        Thread(stepsLogger).start()
         communicationService = CommunicationService(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "Starting Command")
         super.onStartCommand(intent, flags, startId)
         val newInterval = intent?.extras?.getInt("activity")
         if(newInterval != null)

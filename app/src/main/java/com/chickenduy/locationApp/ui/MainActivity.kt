@@ -32,10 +32,9 @@ class MainActivity : AppCompatActivity() {
                 ACCESS_FINE_LOCATION_REQUEST_CODE
             )
             ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
                 EXTERNAL_STORAGE_REQUEST_CODE
             )
-
         } else {
             startBackgroundService()
         }
