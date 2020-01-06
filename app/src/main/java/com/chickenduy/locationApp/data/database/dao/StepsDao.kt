@@ -21,7 +21,7 @@ interface StepsDao {
     suspend fun getById(id: Long): Steps
 
     @Query("SELECT * FROM steps_table WHERE timestamp > :minTimestamp AND timestamp < :maxTimestamp ORDER BY timestamp LIMIT 1")
-    suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Steps>
+    fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Steps>
 
     @Query("SELECT * FROM steps_table  ORDER BY timestamp DESC Limit 10")
     fun get10Recent(): LiveData<List<Steps>>

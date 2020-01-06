@@ -14,37 +14,44 @@ import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesService
 import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
-import com.chickenduy.locationApp.backgroundServices.stepsService.StepsLogger
+import com.chickenduy.locationApp.backgroundServices.stepsService.StepsService
 
+/**
+ * This class handles all logic, it starts all location related services
+ */
 class BackgroundService : Service() {
 
-    private val TAG = "BACKGROUNDSERVICE"
+    private val logTAG = "BACKGROUNDSERVICE"
 
     private lateinit var notification: Notification
     private lateinit var gpsService: GPSService
     private lateinit var activitiesService: ActivitiesService
     private lateinit var communicationService: CommunicationService
-    private lateinit var stepsLogger: StepsLogger
+    private lateinit var stepsService: StepsService
 
     override fun onCreate() {
-        Log.d(TAG, "Starting BackgroundService")
+        Log.d(logTAG, "Starting BackgroundService")
         if (!this::notification.isInitialized) {
             notification = buildNotification(this)
-            startForeground(1, notification)
+            startForeground(1337, notification)
+        }
+        else {
+            startForeground(1337, notification)
         }
         // Start GPS Tracking
         gpsService = GPSService(applicationContext)
         // Start Activities Tracking
         activitiesService = ActivitiesService(applicationContext)
         // Start Steps Tracking
-        stepsLogger = StepsLogger(applicationContext)
-        Thread(stepsLogger).start()
+        stepsService = StepsService(applicationContext)
+        // Start the Communication Service (Server, next Device)
         communicationService = CommunicationService(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Starting Command")
+        Log.d(logTAG, "Starting Command")
         super.onStartCommand(intent, flags, startId)
+        // If onStartCommand is called by new activity, change interval of gps calls
         val newInterval = intent?.extras?.getInt("activity")
         if(newInterval != null)
             gpsService.startTracking(newInterval)
@@ -78,6 +85,9 @@ class BackgroundService : Service() {
             .build()
     }
 
+    /**
+     * If API level is Oreo or above, a Notification Channel is required
+     */
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(channelId: String, channelName: String): String {
         val chan = NotificationChannel(
@@ -101,12 +111,12 @@ class BackgroundService : Service() {
         super.onDestroy()
         Toast.makeText(
             this,
-            "logging service done",
+            "Application has been closed, trying to restart BackgroundService",
             Toast.LENGTH_SHORT
         ).show()
         Log.e(
-            TAG,
-            "Service unexpectedly destroyed while GPSService was running. Will send broadcast to RestartReceiver."
+            logTAG,
+            "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
         )
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
     }
@@ -120,12 +130,12 @@ class BackgroundService : Service() {
         super.onTaskRemoved(rootIntent)
         Toast.makeText(
             this,
-            "logging service done with onTaskRemoved",
+            "Application has been closed, trying to restart BackgroundService",
             Toast.LENGTH_SHORT
         ).show()
         Log.e(
-            TAG,
-            "Service unexpectedly destroyed while GPSService was running. Will send broadcast to RestartReceiver."
+            logTAG,
+            "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
         )
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
     }

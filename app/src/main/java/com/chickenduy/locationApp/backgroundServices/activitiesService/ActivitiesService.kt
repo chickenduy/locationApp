@@ -7,25 +7,24 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.chickenduy.locationApp.data.database.TrackingDatabase
-import com.chickenduy.locationApp.data.repository.ActivitiesRepository
-import com.chickenduy.locationApp.data.repository.GPSRepository
 import com.google.android.gms.location.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
-class ActivitiesService(private val context: Context) {
-    private val TAG = "ACTIVITIESSERVICE"
+/**
+ * This class registers tracking of activities
+ */
+class ActivitiesService(context: Context) {
+    private val logTAG = "ACTIVITIESSERVICE"
 
     private lateinit var mPendingIntent: PendingIntent
-    private lateinit var activtiesProvider: ActivityRecognitionClient
-    val transitions = ArrayList<ActivityTransition>()
+    private lateinit var activitiesProvider: ActivityRecognitionClient
+    private val transitions = ArrayList<ActivityTransition>()
 
     init {
+        Log.d(logTAG, "Starting ActivitiesService")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            activtiesProvider = ActivityRecognition.getClient(context)
+            activitiesProvider = ActivityRecognition.getClient(context)
             val intent = Intent(context, ActivitiesLogger::class.java)
             mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
         }
@@ -112,11 +111,11 @@ class ActivitiesService(private val context: Context) {
 
         val request = ActivityTransitionRequest(transitions)
 
-        val task = activtiesProvider.requestActivityTransitionUpdates(request, mPendingIntent)
-        //val task = activtiesProvider.requestActivityUpdates(1000L, mPendingIntent)
+        val task = activitiesProvider.requestActivityTransitionUpdates(request, mPendingIntent)
+        //val task = activitiesProvider.requestActivityUpdates(1000L, mPendingIntent)
 
         task.addOnFailureListener { e: Exception ->
-            Log.e("TAG", e.message!!)
+            Log.e(logTAG, e.message!!)
         }
     }
 }

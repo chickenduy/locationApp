@@ -9,9 +9,7 @@ import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.ui.MainActivity
 import kotlin.system.exitProcess
 
-class MyExceptionHandler(
-    private val activity: Activity
-): Thread.UncaughtExceptionHandler {
+class MyExceptionHandler(private val activity: Activity): Thread.UncaughtExceptionHandler {
 
     override fun uncaughtException(thread: Thread, exception: Throwable) {
         val intent = Intent(activity, MainActivity::class.java)

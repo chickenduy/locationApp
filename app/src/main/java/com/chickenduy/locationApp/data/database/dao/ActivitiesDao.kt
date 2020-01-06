@@ -27,6 +27,9 @@ interface ActivitiesDao {
     @Query("SELECT * FROM activities_table ORDER BY timestamp ASC LIMIT 10")
     fun get10Recent(): LiveData<List<Activities>>
 
+    @Query("SELECT * FROM activities_table WHERE enter = 0 ORDER BY timestamp ASC LIMIT 1")
+    fun getLatestEntered(): Activities
+
     @Query("DELETE FROM activities_table")
     suspend fun deleteAll()
 }

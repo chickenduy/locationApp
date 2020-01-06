@@ -3,7 +3,6 @@ package com.chickenduy.locationApp.data.repository
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import com.chickenduy.locationApp.data.database.dao.GPSDao
-import com.chickenduy.locationApp.data.database.entity.Activities
 import com.chickenduy.locationApp.data.database.entity.GPS
 
 class GPSRepository (
@@ -29,8 +28,13 @@ class GPSRepository (
     }
 
     @WorkerThread
-    suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<GPS> {
-        return gpsDao.getByTimestamp(minTimestamp, maxTimestamp)
+    suspend fun getByTimestamps(minTimestamp: Long, maxTimestamp: Long): List<GPS> {
+        return gpsDao.getByTimestamps(minTimestamp, maxTimestamp)
+    }
+
+    @WorkerThread
+    fun getByTimestamp(timestamp: Long): GPS {
+        return gpsDao.getByTimestamp(timestamp)
     }
 
     @WorkerThread

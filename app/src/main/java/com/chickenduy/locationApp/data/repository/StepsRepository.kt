@@ -30,7 +30,7 @@ class StepsRepository (
     }
 
     @WorkerThread
-    suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Steps> {
+    fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Steps> {
         return stepsDao.getByTimestamp(minTimestamp, maxTimestamp)
     }
 

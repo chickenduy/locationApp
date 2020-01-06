@@ -39,11 +39,11 @@ class MainActivity : AppCompatActivity() {
             startBackgroundService()
         }
 
-        Thread.setDefaultUncaughtExceptionHandler(
-            MyExceptionHandler(
-                this
-            )
-        )
+//        Thread.setDefaultUncaughtExceptionHandler(
+//            MyExceptionHandler(
+//                this
+//            )
+//        )
         if (intent.getBooleanExtra("crash", false)) {
             Toast.makeText(this, "App restarted after crash", Toast.LENGTH_SHORT).show()
         }

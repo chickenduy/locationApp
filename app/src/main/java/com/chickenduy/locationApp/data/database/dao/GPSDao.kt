@@ -18,13 +18,16 @@ interface GPSDao {
     @Query("SELECT * FROM gps_table WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): GPS
 
-    @Query("SELECT * FROM gps_table WHERE timestamp > :minTimestamp AND timestamp < :maxTimestamp ORDER BY timestamp DESC")
-    suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<GPS>
+    @Query("SELECT * FROM gps_table WHERE timestamp > :start AND timestamp < :end ORDER BY timestamp DESC")
+    suspend fun getByTimestamps(start: Long, end: Long): List<GPS>
 
-    @Query("SELECT * FROM gps_table  ORDER BY timestamp DESC Limit 10")
+    @Query(" SELECT * FROM gps_table ORDER BY ABS(timestamp - :timestamp) ASC LIMIT 1")
+    fun getByTimestamp(timestamp: Long): GPS
+
+    @Query("SELECT * FROM gps_table ORDER BY timestamp DESC Limit 10")
     fun get10Recent(): LiveData<List<GPS>>
 
-    @Query("SELECT * FROM gps_table  ORDER BY timestamp DESC")
+    @Query("SELECT * FROM gps_table ORDER BY timestamp DESC")
     fun getAll(): LiveData<List<GPS>>
 
     @Query("DELETE FROM gps_table")

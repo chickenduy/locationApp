@@ -38,6 +38,11 @@ class ActivitiesRepository (
     }
 
     @WorkerThread
+    fun getLatestEntered(): Activities {
+        return activitiesDao.getLatestEntered()
+    }
+
+    @WorkerThread
     fun getAll(): LiveData<List<Activities>> {
         return activitiesDao.getAll()
     }

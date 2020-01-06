@@ -4,12 +4,31 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.android.volley.Request
+import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.chickenduy.locationApp.MyApp
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.data.BasicData
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.data.LocationData
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.Coordinates
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.Location
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.message.PresenceOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.message.RequestHeader
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.LocationOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.RequestOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.StepsOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.WalkOptions
 import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.chickenduy.locationApp.data.repository.GPSRepository
-import me.pushy.sdk.Pushy
+import com.chickenduy.locationApp.data.repository.StepsRepository
+import com.google.gson.Gson
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.joda.time.DateTime
 import org.json.JSONException
 import org.json.JSONObject
 import java.security.SecureRandom
@@ -18,36 +37,44 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlin.math.ceil
+import kotlin.math.floor
+import kotlin.math.pow
+import kotlin.math.roundToLong
 
-//Pushy Notification Receiver
+/**
+ * This class manages notifications and forwards to next device
+ */
 class CommunicationReceiver: BroadcastReceiver() {
 
-    private val TAG = "COMRECEIVER"
+    private val logTAG = "COMRECEIVER"
     private val PASSWORD = "password"
     private val ctx = MyApp.instance
     private val sharedPref = ctx.getSharedPreferences("options", Context.MODE_PRIVATE)
     private val serverURI = "https://locationserver.eu-gb.mybluemix.net/"
+    private val pushyURI = "https://api.pushy.me/push?api_key=cfd5f664afd97266ed8ec89ac697b9dcded0afced39635320fc5bfb7a950c705"
     private val queue = Volley.newRequestQueue(this.ctx)
     private var waitForConfirmation = false
-
-    private val activitiesRepository: ActivitiesRepository = ActivitiesRepository(
-        TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
+    private val activitiesRepository: ActivitiesRepository = ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
     private val gpsRepository: GPSRepository = GPSRepository(TrackingDatabase.getDatabase(MyApp.instance).gPSDao())
-
-
+    private val stepsRepository: StepsRepository = StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
+    private val gson = Gson()
+    private lateinit var job: Job
     /**
      * Function called upon receiving Pushy notification
      * @param context application context
      * @param intent intent carries data from push notification
      */
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d(TAG, "Received Notification")
+        Log.d(logTAG, "Received Notification")
 
         // Receive Confirmation
         // TODO: OnConfirmation -> cancel sleep thread
         val confirmation = intent.getBooleanExtra("confirmation", false)
         if (confirmation) {
             waitForConfirmation = true
+            Log.d(logTAG, "cancel timeout")
+            job.cancel()
             return
         }
 
@@ -61,7 +88,7 @@ class CommunicationReceiver: BroadcastReceiver() {
         val data = intent.getStringExtra("data")
 
         if(requestHeader.isNullOrEmpty() || requestOptions.isNullOrEmpty() || requestData.isNullOrEmpty() || data.isNullOrEmpty()) {
-            Log.e(TAG, "Got wrong request format")
+            Log.e(logTAG, "Got wrong request format")
             return
         }
 
@@ -69,126 +96,183 @@ class CommunicationReceiver: BroadcastReceiver() {
             // TODO: Decrypt data
         }
 
-        val requestHeaderObj = JSONObject(requestHeader)
-        val requestOptionsObj = JSONObject(requestOptions)
-        val requestDataObj = JSONObject(requestData)
-        val dataObj = JSONObject(data)
+        // TODO: Start aggregation
+        val requestHeaderObj = gson.fromJson(requestHeader, RequestHeader::class.java)
+        val requestOptionsObj = gson.fromJson(requestOptions, RequestOptions::class.java)
 
-        val request = JSONObject()
-        request.put("requestHeader", requestHeaderObj)
-        request.put("requestOptions", requestOptionsObj)
-        request.put("requestData", requestDataObj)
-        request.put("data", dataObj)
+        Log.e(logTAG, requestOptionsObj.toString())
 
-        when(requestHeaderObj.getString("type")) {
+        // TODO: Send confirmation
+        if(requestOptionsObj.from.isNotEmpty()) {
+            sendConfirmation(requestOptionsObj.from)
+        }
+
+        when(requestHeaderObj.type) {
             "steps" -> {
-                Log.d(TAG, "Starting aggregation for steps")
-                aggregateSteps(requestDataObj, dataObj)
+                val requestDataObj = gson.fromJson(requestData, StepsOptions::class.java)
+                val dataObj = gson.fromJson(data, BasicData::class.java)
+                val newDataObj = aggregateSteps(requestDataObj, dataObj)
+                prepareForNextParticipant(requestHeaderObj, requestOptionsObj, requestDataObj, newDataObj)
             }
             "walk" -> {
-                Log.d(TAG, "Starting aggregation for walking")
+                Log.d(logTAG, "Starting aggregation for walking")
+                val requestDataObj = gson.fromJson(requestData, WalkOptions::class.java)
+                val dataObj = gson.fromJson(data, BasicData::class.java)
+                prepareForNextParticipant(requestHeaderObj, requestOptionsObj, requestDataObj, dataObj)
 
             }
             "location" -> {
-                Log.d(TAG, "Starting aggregation for location")
-
+                Log.d(logTAG, "Starting aggregation for location")
+                val requestDataObj = gson.fromJson(requestData, LocationOptions::class.java)
+                val dataObj = gson.fromJson(data, LocationData::class.java)
+                val newDataObj = aggregateLocation(requestDataObj, dataObj)
+                prepareForNextParticipant(requestHeaderObj, requestOptionsObj, requestDataObj, newDataObj)
             }
             "presence" -> {
-                Log.d(TAG, "Starting aggregation for presence")
-                Log.d(TAG, requestData)
-                Log.d(TAG, requestDataObj.getLong("start").toString())
-                Log.d(TAG, requestDataObj.getLong("end").toString())
-                Log.d(TAG, requestDataObj.getDouble("long").toString())
-                Log.d(TAG, requestDataObj.getDouble("lat").toString())
-                Log.d(TAG, requestDataObj.getDouble("radius").toString())
-
+                Log.d(logTAG, "Starting aggregation for presence")
+                val requestDataObj = gson.fromJson(requestData, PresenceOptions::class.java)
+                val dataObj = gson.fromJson(data, BasicData::class.java)
+                prepareForNextParticipant(requestHeaderObj, requestOptionsObj, requestDataObj, dataObj)
             }
         }
     }
 
     /**
      * Start internal aggregation of activity
-     * @param requestData containing desired data
-     * @param data containing aggregated data
      */
-    private fun aggregateSteps(requestData: JSONObject, data: JSONObject) {
+    private fun aggregateSteps(options: StepsOptions, data: BasicData): BasicData {
+        val date = DateTime(options.date)
+        val startDate = date.withTimeAtStartOfDay().millis
+        val endDate = date.plusDays(1).withTimeAtStartOfDay().millis
+        var steps = 0
+
+        val stepsArray = stepsRepository.getByTimestamp(startDate, endDate)
+        stepsArray.forEach {
+            steps += it.steps
+        }
+        data.addRaw(steps)
+
+        return data
         // TODO: Aggregate activity into data
-        val result = setJSONAttribute(data,"","")
-        forwardToNextParticipant(result)
     }
 
-    private fun aggregateLocations() {
+    private fun aggregateLocation(options: LocationOptions, data: LocationData): LocationData {
+        val locations = gpsRepository.getByTimestamp(options.timestamp)
+        val accuracy = 10.0.pow(options.accuracy).toInt()
+        val location = Location(
+            Coordinates(floorToDecimal(locations.longitude, accuracy), floorToDecimal(locations.latitude, accuracy)),
+            Coordinates(ceilToDecimal(locations.longitude, accuracy), ceilToDecimal(locations.latitude, accuracy))
+        )
 
+        data.raw.add(location)
+        data.n++
+        return data
+    }
+
+    private fun floorToDecimal(number: Float, accuracy: Int): Float {
+        return floor(number * accuracy) / accuracy
+    }
+
+    private fun ceilToDecimal(number: Float, accuracy: Int): Float {
+        return ceil(number * accuracy) / accuracy
+    }
+
+    private fun prepareForNextParticipant(
+        requestHeader: RequestHeader,
+        requestOptions: RequestOptions,
+        requestData: StepsOptions,
+        basicData: BasicData) {
+    }
+
+
+
+    private fun prepareForNextParticipant(requestHeader: RequestHeader,
+                                          requestOptions: RequestOptions,
+                                          requestData: WalkOptions,
+                                          basicData: BasicData) {
+    }
+
+    private fun prepareForNextParticipant(requestHeader: RequestHeader,
+                                          requestOptions: RequestOptions,
+                                          requestData: LocationOptions,
+                                          locationData: LocationData) {
+        requestOptions.from = requestOptions.group[0].id
+        requestOptions.group.removeAt(0)
+        if (requestOptions.group.size == 0) {
+            Log.d(logTAG, "Last in group, send results to server")
+            // TODO: Send aggregated results to server
+            return
+        }
+
+        val message = JSONObject()
+        message.put("to", requestOptions.group[0].id)
+        message.put("time_to_live", 120)
+
+        val data = JSONObject()
+        data.put("encryptionKey", null)
+        data.put("iv", null)
+        data.put("requestHeader", gson.toJson(requestHeader, RequestHeader::class.java))
+        data.put("requestOptions", gson.toJson(requestOptions, RequestOptions::class.java))
+        data.put("requestData", gson.toJson(requestData, LocationOptions::class.java))
+
+        // TODO: Encrypt
+        val dataToEncrypt = gson.toJson(locationData, LocationData::class.java)
+        data.put("data", dataToEncrypt)
+
+        message.put("data", data)
+        forwardToNextParticipant(message)
+    }
+
+    private fun prepareForNextParticipant(requestHeader: RequestHeader,
+                                          requestOptions: RequestOptions,
+                                          requestData: PresenceOptions,
+                                          basicData: BasicData) {
     }
 
     /**
      * Forward newData to the next participant in the group
-     * @param requestOptions containing next target and group ids
+     * @param message containing next target and group ids
      */
-    private fun forwardToNextParticipant(requestOptions: JSONObject) {
-        val group = requestOptions.getJSONArray("group")
-        val from = group[0]
-        group.remove(0)
-        if (group.length() == 0) {
-            Log.d(TAG, "Send to server")
-            // TODO: Send aggregated results to server
+    private fun forwardToNextParticipant(message: JSONObject) {
+
+        val res = Response.Listener<JSONObject> {
+            Log.d(logTAG, "Sent to next participant")
         }
 
-        val newRequestOptions = setJSONAttribute(requestOptions, "from", from)
+        val err = Response.ErrorListener {
+            Log.e(logTAG, "Failed to send next participant")
+        }
 
-        val keygen = KeyGenerator.getInstance("AES")
-        val iv = ByteArray(16)
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
+        queue.add(jsonRequest)
 
-//        val message = JSONObject()
-//        message.put("to", request.getJSONArray("group")[0])
-//        message.put("time_to_live", 120)
-//
-//        val newRequest = setJSONAttribute(request, "group", group)
-//
-//        message.put("request", newRequest)
-//        message.put("data", newData)
-//
-//        val res = Response.Listener<JSONObject> { response ->
-//            Log.d(TAG, response.toString())
-//
-//        }
-//
-//        val err = Response.ErrorListener {
-//            Log.e(TAG, it.message.toString())
-//        }
-//
-//        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "user", request, res, err)
-//        queue.add(jsonRequest)
-
-        // Start waiting for confirmation
+        //Start waiting for confirmation
         waitForConfirmation = false
-        val test = Thread(Runnable {
-            // TODO: timeout until get response
-        })
-        val test1 = test
-
+        this.job = GlobalScope.launch {
+            // TODO: send to next participant
+            delay(120000)
+            Log.e(logTAG, "SEND TO SOMEONE ELSE")
+        }
     }
 
-    private fun setJSONAttribute(obj: JSONObject, id: String, value: Any): JSONObject {
-        if (obj.has(id))
-        {
-            try {
-                obj.remove(id)
-                obj.put(id, value)
-            }
-            catch (error: JSONException) {
-                Log.e(TAG, error.toString())
-            }
+    private fun sendConfirmation(to: String) {
+        val message = JSONObject()
+        message.put("to", to)
+        val confirmationData = JSONObject()
+        confirmationData.put("confirmation", true)
+        message.put("data", confirmationData)
+        message.put("time_to_live", 120)
+
+        val res = Response.Listener<JSONObject> {
+            Log.d(logTAG, "Send confirmation successfully")
         }
-        else {
-            try {
-                obj.put(id, value)
-            }
-            catch (error: JSONException) {
-                Log.e(TAG, error.toString())
-            }
+
+        val err = Response.ErrorListener {
+            Log.e(logTAG, "Couldn't send confirmation")
         }
-        return obj
+
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
+        queue.add(jsonRequest)
     }
 
     fun generateSecretKey(): SecretKey? {

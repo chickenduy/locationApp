@@ -11,17 +11,20 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 
+/**
+ * This class tracks GPS data in a certain interval
+ */
 class GPSService(private val context: Context) {
-    private val TAG = "GPSSERVICE"
+    private val logTAG = "GPSSERVICE"
 
     private lateinit var locationProvider: FusedLocationProviderClient
-    private lateinit var request: LocationRequest
     private lateinit var mPendingIntent: PendingIntent
 
-    private val DEFAULTACTIVITY = 0
-    private val MILSECONDS = 1000L
+    private val DEFAULTACTIVITY = 1
+    private val SECONDS = 1000L
 
     init {
+        Log.d(logTAG, "Starting GPSService")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
@@ -40,26 +43,26 @@ class GPSService(private val context: Context) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            var interval = when(activity){
-                0 -> MILSECONDS*60*10 //still
-                1 -> MILSECONDS*30 //walking
-                2 -> MILSECONDS*15 //running
-                3 -> MILSECONDS*5 //biking
-                4 -> MILSECONDS //vehicle
-                else -> MILSECONDS
+            val interval = when(activity){
+                0 -> SECONDS*60*10 //still
+                1 -> SECONDS*30 //walking
+                2 -> SECONDS*15 //running
+                3 -> SECONDS*5 //biking
+                4 -> SECONDS //vehicle
+                else -> SECONDS
             }
 
-            Log.d(TAG, "change interval speed for ${interval/1000}s")
-            request = LocationRequest.create()
+            Log.d(logTAG, "change interval speed for ${interval/SECONDS}s")
+            val request = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(interval)
-                .setMaxWaitTime(MILSECONDS*60*10)
+                .setMaxWaitTime(SECONDS*60)
 
-            //locationProvider.flushLocations()
+            locationProvider.flushLocations()
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)
 
             task.addOnFailureListener { e: Exception ->
-                Log.e(TAG, "${e.message}")
+                Log.e(logTAG, "${e.message}")
             }
         }
         else

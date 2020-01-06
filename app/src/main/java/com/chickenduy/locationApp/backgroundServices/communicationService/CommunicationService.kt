@@ -11,80 +11,82 @@ import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import me.pushy.sdk.Pushy
 import org.json.JSONObject
 import java.security.KeyPairGenerator
 import javax.crypto.Cipher
 
-
-class CommunicationService(private val ctx: Context) {
-    private val TAG = "COMSERVICE"
+/**
+ * This class manages device registration
+ */
+class CommunicationService(private val context: Context) {
+    private val logTAG = "COMSERVICE"
     private val PUBLICKEY = "publicKey"
     private val PRIVATEKEY = "privateKey"
     private val ISREGISTERED = "isRegistered"
     private val PASSWORD = "password"
-    private val sharedPref = ctx.getSharedPreferences("options", Context.MODE_PRIVATE)
+    private val sharedPref = context.getSharedPreferences("options", Context.MODE_PRIVATE)
     private lateinit var token: String
     private val serverURI = "https://locationserver.eu-gb.mybluemix.net/"
     private val testURI = "10.0.2.2:3000"
-    private val queue = Volley.newRequestQueue(this.ctx)
+    private val queue = Volley.newRequestQueue(this.context)
 
     // On app start
     init {
-        Log.d(TAG, "init coms")
-//        Thread(Runnable {
-//            registerDevice()
-//        }).start()
-
-        // First time app start
+        Log.d(logTAG, "Starting ComService")
+        // Called when the app is installed for the first time
         if (!sharedPref.contains(ISREGISTERED)) {
             Thread(Runnable {
                 registerDevice()
-                Pushy.listen(ctx)
-                Pushy.subscribe("online", ctx)
+                Pushy.listen(context)
+                Pushy.subscribe("online", context)
             }).start()
         }
+        // App is started for a second time
         else {
-            // registered on node
+            // Called when device is not registered on server
             if (sharedPref.getBoolean(ISREGISTERED, false)) {
+                GlobalScope.launch {
+                    registerDevice()
+                }
+            }
+            // Update the server
+            else {
                 updateDevice()
             }
-            // registered device but registration on node failed
-            else {
-                Thread(Runnable {
-                    registerDevice()
-                }).start()
-            }
-            Pushy.listen(ctx)
+            Pushy.listen(context)
             Thread(Runnable {
-                Pushy.subscribe("online", ctx)
+                Pushy.subscribe("online", context)
             }).start()
         }
+        // Just additional information for dev, that Pushy token is not saved because writing permission is not present
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                Log.e(TAG, "You will loose token upon uninstall.")
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                Log.e(logTAG, "You will loose token upon uninstall.")
             }
         }
     }
 
+    /**
+     * Pings the server to update the timestamp
+     */
     private fun updateDevice() {
-        Log.d(TAG, "Pinging Server")
-        token = Pushy.getDeviceCredentials(ctx).token
+        Log.d(logTAG, "Pinging Server")
+        token = Pushy.getDeviceCredentials(context).token
 
         val pingRequest = JSONObject()
         pingRequest.put("id", token)
         pingRequest.put(PASSWORD, sharedPref.getString(PASSWORD, "") )
 
         val res = Response.Listener<JSONObject> { response ->
-            Log.d(TAG, response.toString())
+            Log.d(logTAG, response.toString())
         }
 
         val err = Response.ErrorListener { response ->
-            Log.e(TAG, response.toString())
+            Log.e(logTAG, response.toString())
             sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
-            Thread(Runnable {
-                Pushy.subscribe("online", ctx)
-            }).start()
         }
 
         val jsonRequest = JsonObjectRequest(Request.Method.PATCH, serverURI + "crowd/ping", pingRequest, res, err)
@@ -95,8 +97,8 @@ class CommunicationService(private val ctx: Context) {
      * Register the device on Pushy and Node server
      */
     private fun registerDevice() {
-        Log.d(TAG, "Register Device")
-        token = if (!Pushy.isRegistered(ctx)) Pushy.register(ctx) else Pushy.getDeviceCredentials(ctx).token
+        Log.d(logTAG, "Register Device")
+        token = if (!Pushy.isRegistered(context)) Pushy.register(context) else Pushy.getDeviceCredentials(context).token
 
         var publicKey = sharedPref.getString(PUBLICKEY, "")
 
@@ -126,7 +128,7 @@ class CommunicationService(private val ctx: Context) {
         request.put(PUBLICKEY, publicKey)
 
         val res = Response.Listener<JSONObject> { response ->
-            Log.d(TAG, response.toString())
+            Log.d(logTAG, response.toString())
             with(sharedPref.edit()) {
                 putBoolean(ISREGISTERED, true)
                 putString(PASSWORD, response.getString(PASSWORD))
@@ -135,11 +137,11 @@ class CommunicationService(private val ctx: Context) {
         }
 
         val err = Response.ErrorListener {
-            Log.e(TAG, it.message.toString())
+            Log.e(logTAG, it.message.toString())
             sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
         }
 
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "crowd", request, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, testURI + "crowd", request, res, err)
         queue.add(jsonRequest)
     }
 

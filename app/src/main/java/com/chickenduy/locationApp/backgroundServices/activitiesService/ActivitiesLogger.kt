@@ -8,6 +8,8 @@ import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.backgroundServices.BackgroundService
 import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.database.entity.Activities
+import com.chickenduy.locationApp.data.database.entity.ActivitiesDetailed
+import com.chickenduy.locationApp.data.repository.ActivitiesDetailedRepository
 import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.google.android.gms.location.ActivityTransitionEvent
 import com.google.android.gms.location.ActivityTransitionResult
@@ -16,19 +18,23 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.*
 
+/**
+ * This class saves activities data to a database
+ */
 class ActivitiesLogger: BroadcastReceiver() {
-    private val TAG = "ACTIVITIESLOGGER"
-
+    private val logTAG = "ACTIVITIESLOGGER"
     private val activitiesRepository: ActivitiesRepository = ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
+    private val activitiesDetailedRepository: ActivitiesDetailedRepository = ActivitiesDetailedRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDetailedDao())
 
     override fun onReceive(context: Context, intent: Intent) {
         if(ActivityTransitionResult.hasResult(intent))
         {
-            Log.d(TAG,"Received Activities broadcast")
+            Log.d(logTAG,"Received Activities broadcast")
             val result = ActivityTransitionResult.extractResult(intent)
             val detectedActivities = result?.transitionEvents as List<ActivityTransitionEvent>
-            Log.d(TAG, detectedActivities.toString())
+            Log.d(logTAG, detectedActivities.toString())
 
+            // Get entered activity
             val activities = detectedActivities
                 .filter { it.transitionType == 0 }
                 .maxBy { it.elapsedRealTimeNanos }
@@ -43,12 +49,28 @@ class ActivitiesLogger: BroadcastReceiver() {
                     it.transitionType,
                     it.activityType
                 )
-                Log.d(TAG, "Saving activities")
                 GlobalScope.launch {
                     activitiesRepository.insert(activity)
-                    Log.d(TAG, "Saved activities")
+                    Log.d(logTAG, "Saved activities")
                 }
+                GlobalScope.launch {
+                    val latestActivitiesEntered = activitiesRepository.getLatestEntered()
+                    val activityDetailed = ActivitiesDetailed(
+                        0L,
+                        latestActivitiesEntered.timestamp,
+                        activity.timestamp,
+                        activity.type
+                    )
+                    activitiesDetailedRepository.insert(activityDetailed)
+                    Log.d(logTAG, "Saved activitiesDetailed")
+                    Log.d(logTAG, activityDetailed.toString())
+                }
+
+
+                // TODO: if left activity, connect with entered activity and save
             }
+
+
         }
         /*if(ActivityRecognitionResult.hasResult(intent)) {
             Log.d(TAG,"Received Activities broadcast")
@@ -58,7 +80,7 @@ class ActivitiesLogger: BroadcastReceiver() {
             changeInterval(context, detectedActivity.type)
         }*/
         else
-            Log.e(TAG,"something is missing")
+            Log.e(logTAG,"something is missing")
     }
 
     /**
@@ -74,27 +96,27 @@ class ActivitiesLogger: BroadcastReceiver() {
 
         when (activity) {
             DetectedActivity.STILL -> {
-                Log.d(TAG, "change to still")
+                Log.d(logTAG, "change to still")
                 i.putExtra("activity", 0)
             }
             DetectedActivity.WALKING -> {
-                Log.d(TAG, "change to walking")
+                Log.d(logTAG, "change to walking")
                 i.putExtra("activity", 1)
             }
             DetectedActivity.RUNNING -> {
-                Log.d(TAG, "change to running")
+                Log.d(logTAG, "change to running")
                 i.putExtra("activity", 2)
             }
             DetectedActivity.ON_BICYCLE -> {
-                Log.d(TAG, "change to bicycle")
+                Log.d(logTAG, "change to bicycle")
                 i.putExtra("activity", 3)
             }
             DetectedActivity.IN_VEHICLE -> {
-                Log.d(TAG, "change to vehicle")
+                Log.d(logTAG, "change to vehicle")
                 i.putExtra("activity", 4)
             }
             else -> {
-                Log.d(TAG, "change to else")
+                Log.d(logTAG, "change to else")
                 i.putExtra("activity", 0)
             }
         }
