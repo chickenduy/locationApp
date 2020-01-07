@@ -3,6 +3,7 @@ package com.chickenduy.locationApp.backgroundServices.communicationService
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Base64
 import android.util.Log
 import com.android.volley.Request
 import com.android.volley.Response
@@ -29,9 +30,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime
-import org.json.JSONException
 import org.json.JSONObject
+import java.security.KeyFactory
+import java.security.PrivateKey
 import java.security.SecureRandom
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -40,7 +44,7 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.pow
-import kotlin.math.roundToLong
+
 
 /**
  * This class manages notifications and forwards to next device
@@ -85,22 +89,28 @@ class CommunicationReceiver: BroadcastReceiver() {
         val requestHeader = intent.getStringExtra("requestHeader")
         val requestOptions = intent.getStringExtra("requestOptions")
         val requestData = intent.getStringExtra("requestData")
-        val data = intent.getStringExtra("data")
-
-        if(requestHeader.isNullOrEmpty() || requestOptions.isNullOrEmpty() || requestData.isNullOrEmpty() || data.isNullOrEmpty()) {
+        val decryptedData: String?
+        if(requestHeader.isNullOrEmpty() || requestOptions.isNullOrEmpty() || requestData.isNullOrEmpty()) {
             Log.e(logTAG, "Got wrong request format")
             return
         }
 
-        if (encryptionKey != null || iv  != null) {
-            // TODO: Decrypt data
+        decryptedData = if (encryptionKey != null && iv  != null) {
+            val data = intent.getStringExtra("data")
+            val key = decryptKey(encryptionKey)
+            val ivSpec = Base64.decode(iv, Base64.NO_WRAP)
+            val dataBytes = Base64.decode(data, Base64.NO_WRAP)
+            decrypt(key, ivSpec, dataBytes)
+        } else {
+            intent.getStringExtra("data")
         }
+
+        Log.e(logTAG, "Decrypted Data")
+        Log.e(logTAG, decryptedData)
 
         // TODO: Start aggregation
         val requestHeaderObj = gson.fromJson(requestHeader, RequestHeader::class.java)
         val requestOptionsObj = gson.fromJson(requestOptions, RequestOptions::class.java)
-
-        Log.e(logTAG, requestOptionsObj.toString())
 
         // TODO: Send confirmation
         if(requestOptionsObj.from.isNotEmpty()) {
@@ -110,28 +120,27 @@ class CommunicationReceiver: BroadcastReceiver() {
         when(requestHeaderObj.type) {
             "steps" -> {
                 val requestDataObj = gson.fromJson(requestData, StepsOptions::class.java)
-                val dataObj = gson.fromJson(data, BasicData::class.java)
+                val dataObj = gson.fromJson(decryptedData, BasicData::class.java)
                 val newDataObj = aggregateSteps(requestDataObj, dataObj)
                 prepareForNextParticipant(requestHeaderObj, requestOptionsObj, requestDataObj, newDataObj)
             }
             "walk" -> {
                 Log.d(logTAG, "Starting aggregation for walking")
                 val requestDataObj = gson.fromJson(requestData, WalkOptions::class.java)
-                val dataObj = gson.fromJson(data, BasicData::class.java)
+                val dataObj = gson.fromJson(decryptedData, BasicData::class.java)
                 prepareForNextParticipant(requestHeaderObj, requestOptionsObj, requestDataObj, dataObj)
-
             }
             "location" -> {
                 Log.d(logTAG, "Starting aggregation for location")
                 val requestDataObj = gson.fromJson(requestData, LocationOptions::class.java)
-                val dataObj = gson.fromJson(data, LocationData::class.java)
+                val dataObj = gson.fromJson(decryptedData, LocationData::class.java)
                 val newDataObj = aggregateLocation(requestDataObj, dataObj)
                 prepareForNextParticipant(requestHeaderObj, requestOptionsObj, requestDataObj, newDataObj)
             }
             "presence" -> {
                 Log.d(logTAG, "Starting aggregation for presence")
                 val requestDataObj = gson.fromJson(requestData, PresenceOptions::class.java)
-                val dataObj = gson.fromJson(data, BasicData::class.java)
+                val dataObj = gson.fromJson(decryptedData, BasicData::class.java)
                 prepareForNextParticipant(requestHeaderObj, requestOptionsObj, requestDataObj, dataObj)
             }
         }
@@ -196,28 +205,34 @@ class CommunicationReceiver: BroadcastReceiver() {
                                           requestOptions: RequestOptions,
                                           requestData: LocationOptions,
                                           locationData: LocationData) {
+
         requestOptions.from = requestOptions.group[0].id
         requestOptions.group.removeAt(0)
+
         if (requestOptions.group.size == 0) {
             Log.d(logTAG, "Last in group, send results to server")
             // TODO: Send aggregated results to server
             return
         }
 
+        val key = generateSecretKey()
+        val ivParameterSpec = generateIV()
+
         val message = JSONObject()
         message.put("to", requestOptions.group[0].id)
         message.put("time_to_live", 120)
 
         val data = JSONObject()
-        data.put("encryptionKey", null)
-        data.put("iv", null)
+        data.put("encryptionKey", encryptKey(key.encoded, requestOptions.group[0].publicKey))
+        data.put("iv", Base64.encodeToString(ivParameterSpec.iv, Base64.NO_WRAP))
         data.put("requestHeader", gson.toJson(requestHeader, RequestHeader::class.java))
         data.put("requestOptions", gson.toJson(requestOptions, RequestOptions::class.java))
         data.put("requestData", gson.toJson(requestData, LocationOptions::class.java))
 
         // TODO: Encrypt
         val dataToEncrypt = gson.toJson(locationData, LocationData::class.java)
-        data.put("data", dataToEncrypt)
+        val encryptedData = encrypt(key, ivParameterSpec.iv, dataToEncrypt.toByteArray())
+        data.put("data", encryptedData)
 
         message.put("data", data)
         forwardToNextParticipant(message)
@@ -242,6 +257,8 @@ class CommunicationReceiver: BroadcastReceiver() {
         val err = Response.ErrorListener {
             Log.e(logTAG, "Failed to send next participant")
         }
+
+        Log.e(logTAG, message.toString(1))
 
         val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
         queue.add(jsonRequest)
@@ -275,28 +292,87 @@ class CommunicationReceiver: BroadcastReceiver() {
         queue.add(jsonRequest)
     }
 
-    fun generateSecretKey(): SecretKey? {
-        val secureRandom = SecureRandom()
+    /**
+     * Generate a random 256 bit AES symmetric key
+     */
+    private fun generateSecretKey(): SecretKey {
         val keyGenerator = KeyGenerator.getInstance("AES")
-        //generate a key with secure random
-        keyGenerator?.init(128, secureRandom)
-        return keyGenerator?.generateKey()
+        keyGenerator.init(256)
+        return keyGenerator.generateKey()
     }
 
-    fun encrypt(yourKey: SecretKey, fileData: ByteArray): ByteArray {
-        val data = yourKey.encoded
-        val skeySpec = SecretKeySpec(data, 0, data.size, "AES")
-        val cipher = Cipher.getInstance("AES", "BC")
-        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, IvParameterSpec(ByteArray(cipher.blockSize)))
-        return cipher.doFinal(fileData)
+    /**
+     * Generate a random 16 Byte Initialization Vector
+     */
+    private fun generateIV(): IvParameterSpec {
+        val ivRandom = SecureRandom()
+        val iv = ByteArray(16)
+        ivRandom.nextBytes(iv)
+        return IvParameterSpec(iv)
     }
 
-    fun decrypt(yourKey: SecretKey, fileData: ByteArray): ByteArray {
-        val decrypted: ByteArray
-        val cipher = Cipher.getInstance("AES", "BC")
-        cipher.init(Cipher.DECRYPT_MODE, yourKey, IvParameterSpec(ByteArray(cipher.blockSize)))
-        decrypted = cipher.doFinal(fileData)
-        return decrypted
+    /**
+     * Encrypt a String using AES and returns Base64 String
+     * @param key used to encrypt
+     * @param iv used for encryption
+     * @param decrypted String to encrypt
+     */
+    private fun encrypt(key: SecretKey, iv: ByteArray, decrypted: ByteArray): String {
+        val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding")
+        val ivSpec = IvParameterSpec(iv)
+        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec)
+        val result = cipher.doFinal(decrypted)
+        return Base64.encodeToString(result, Base64.NO_WRAP)
     }
 
+    /**
+     * Decrypt a ByteArray using AES and returns Base64 String
+     * @param key used to decrypt
+     * @param iv used for decryption
+     * @param encrypted ByteArray to decrypt
+     */
+    private fun decrypt(key: SecretKey, iv: ByteArray, encrypted: ByteArray): String {
+        val cipher = Cipher.getInstance("AES/CBC/PKCS7PADDING")
+        val ivSpec = IvParameterSpec(iv)
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec)
+        cipher.doFinal(encrypted).toString()
+        return String(cipher.doFinal(encrypted))
+    }
+
+    /**
+     * Encrypt the AES symmetric key using the provided RSA public key
+     * @param key to encrypt
+     * @param publicKeyString used to encrypt the key
+     */
+    private fun encryptKey(key: ByteArray, publicKeyString: String): String? {
+        val decodedPublicKey = Base64.decode(publicKeyString, Base64.NO_WRAP)
+        val x509KeySpec = X509EncodedKeySpec(decodedPublicKey)
+        val keyFact = KeyFactory.getInstance("RSA")
+        val publicKey = keyFact.generatePublic(x509KeySpec)
+        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        return Base64.encodeToString(cipher.doFinal(key), Base64.NO_WRAP)
+    }
+
+    /**
+     * Decrypt the AES symmetric key using the stored RSA private key in shared preferences
+     * @param key to decrypt in Base64 String Format
+     */
+    private fun decryptKey(key: String): SecretKey {
+        val encodedKey = Base64.decode(key, Base64.NO_WRAP)
+        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+        cipher.init(Cipher.DECRYPT_MODE, getPrivateKey())
+        val keyBytes = cipher.doFinal(encodedKey)
+        return SecretKeySpec(keyBytes, 0, keyBytes.size, "AES")
+    }
+
+    /**
+     * Retrieve the RSA private key from shared preferences
+     */
+    private fun getPrivateKey(): PrivateKey {
+        val privateBytes = Base64.decode(sharedPref.getString("privateKey", "")!!, Base64.NO_WRAP)
+        val keySpec = PKCS8EncodedKeySpec(privateBytes)
+        val keyFact = KeyFactory.getInstance("RSA")
+        return  keyFact.generatePrivate(keySpec)
+    }
 }

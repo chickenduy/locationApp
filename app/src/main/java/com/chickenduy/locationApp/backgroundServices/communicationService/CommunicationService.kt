@@ -87,6 +87,7 @@ class CommunicationService(private val context: Context) {
         val err = Response.ErrorListener { response ->
             Log.e(logTAG, response.toString())
             sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
+            registerDevice()
         }
 
         val jsonRequest = JsonObjectRequest(Request.Method.PATCH, serverURI + "crowd/ping", pingRequest, res, err)
@@ -105,22 +106,17 @@ class CommunicationService(private val context: Context) {
         /**
          * Create RSA Keypair for encryption
          */
-        if(sharedPref.contains(PUBLICKEY) || publicKey == "") {
+        if(!sharedPref.contains(PUBLICKEY) || publicKey == "") {
             val keyGen = KeyPairGenerator.getInstance("RSA")
             keyGen.initialize(2048)
             val keyPair = keyGen.genKeyPair()
-            publicKey = "-----BEGIN PUBLIC KEY-----\n" +
-                    Base64.encodeToString(keyPair.public.encoded, Base64.DEFAULT) +
-                    "-----END PUBLIC KEY-----"
-            val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-            cipher.init(Cipher.ENCRYPT_MODE, keyPair.public)
-
+            publicKey = Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP)
             with(sharedPref.edit()) {
-                putString(PUBLICKEY, Base64.encodeToString(keyPair.public.encoded, Base64.DEFAULT))
-                putString("publicKeyRaw", publicKey)
-                putString(PRIVATEKEY, Base64.encodeToString(keyPair.private.encoded, Base64.DEFAULT))
+                putString(PUBLICKEY, publicKey)
+                putString(PRIVATEKEY, Base64.encodeToString(keyPair.private.encoded, Base64.NO_WRAP))
                 apply()
             }
+
         }
 
         val request = JSONObject()
@@ -141,7 +137,7 @@ class CommunicationService(private val context: Context) {
             sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
         }
 
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, testURI + "crowd", request, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "crowd", request, res, err)
         queue.add(jsonRequest)
     }
 

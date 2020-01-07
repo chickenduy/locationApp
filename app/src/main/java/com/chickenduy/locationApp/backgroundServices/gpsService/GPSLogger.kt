@@ -25,15 +25,13 @@ class GPSLogger: BroadcastReceiver() {
         if (LocationResult.hasResult(intent)) {
             Log.d(logTAG, "Received GPS Broadcast")
             val result = LocationResult.extractResult(intent)
-            Log.d(logTAG, "${result.locations.size}")
             result.locations.forEach{
-                Log.d(logTAG, it.time.toString())
                 val gps = GPS(0,
                     it.time,
                     it.longitude.toFloat(),
                     it.latitude.toFloat()
                 )
-                val test =GlobalScope.launch {
+                val test = GlobalScope.launch {
                     gpsRepository.insert(gps)
                 }
             }

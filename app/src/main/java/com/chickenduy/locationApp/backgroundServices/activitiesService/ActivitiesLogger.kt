@@ -53,21 +53,20 @@ class ActivitiesLogger: BroadcastReceiver() {
                     activitiesRepository.insert(activity)
                     Log.d(logTAG, "Saved activities")
                 }
-                GlobalScope.launch {
-                    val latestActivitiesEntered = activitiesRepository.getLatestEntered()
-                    val activityDetailed = ActivitiesDetailed(
-                        0L,
-                        latestActivitiesEntered.timestamp,
-                        activity.timestamp,
-                        activity.type
-                    )
-                    activitiesDetailedRepository.insert(activityDetailed)
-                    Log.d(logTAG, "Saved activitiesDetailed")
-                    Log.d(logTAG, activityDetailed.toString())
+                if (it.transitionType == 0) {
+                    GlobalScope.launch {
+                        val latestActivitiesEntered = activitiesRepository.getLatestEntered()
+                        val activityDetailed = ActivitiesDetailed(
+                            0L,
+                            latestActivitiesEntered.timestamp,
+                            activity.timestamp,
+                            activity.type
+                        )
+                        activitiesDetailedRepository.insert(activityDetailed)
+                        Log.d(logTAG, "Saved activitiesDetailed")
+                        Log.d(logTAG, activityDetailed.toString())
+                    }
                 }
-
-
-                // TODO: if left activity, connect with entered activity and save
             }
 
 
