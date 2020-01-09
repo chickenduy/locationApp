@@ -1,8 +1,10 @@
-package com.chickenduy.locationApp.backgroundServices.communicationService.model.options
+package com.chickenduy.locationApp.backgroundServices.communicationService.model.message
 
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.Crowd
 
 class RequestOptions(
+    val groupNumber: Int,
+    val numberOfGroups: Int,
     var from: String,
     var group: ArrayList<Crowd>) {
 

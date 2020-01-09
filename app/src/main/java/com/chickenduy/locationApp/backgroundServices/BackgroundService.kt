@@ -140,6 +140,20 @@ class BackgroundService : Service() {
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
     }
 
+    override fun onUnbind(intent: Intent?): Boolean {
+        Toast.makeText(
+            this,
+            "Application has been closed, trying to restart BackgroundService",
+            Toast.LENGTH_SHORT
+        ).show()
+        Log.e(
+            logTAG,
+            "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
+        )
+        sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
+        return super.onUnbind(intent)
+    }
+
     /**
      * This is required for a Service
      * */

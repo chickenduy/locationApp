@@ -3,54 +3,50 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.chickenduy.locationApp">
 
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
 
-
     <application
+        android:name=".MyApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:screenOrientation="portrait"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:name=".MyApp"
-        tools:ignore="GoogleAppIndexingWarning"
-        android:screenOrientation="portrait">
+        android:usesCleartextTraffic="true"
+        tools:ignore="GoogleAppIndexingWarning">
 
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/common_google_signin_btn_icon_dark" />
-
-        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
 
         <activity android:name=".ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity android:name=".ui.gps.GPSView">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".ui.MainActivity" />
         </activity>
-
         <activity android:name=".ui.activity.ActivitiesView">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".ui.MainActivity" />
         </activity>
-
         <activity android:name=".ui.steps.StepsView">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -61,63 +57,65 @@
             android:name=".backgroundServices.BackgroundService"
             android:enabled="true"
             android:exported="false"
-            android:stopWithTask="false"
-            android:permission="TODO">
+            android:permission="TODO"
+            android:stopWithTask="false">
             <intent-filter>
                 <action android:name=".LOGGING_SERVICE" />
             </intent-filter>
         </service>
 
-        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.BootUpReceiver">
+        <receiver
+            android:name=".backgroundServices.BootUpReceiver"
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
-
-        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.activitiesService.ActivitiesLogger"/>
-        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.gpsService.GPSLogger"/>
-        <receiver android:enabled="true" android:name="com.chickenduy.locationApp.backgroundServices.stepsService.StepsLogger"/>
-
-        <!-- Pushy Declarations -->
-
+        <receiver
+            android:name=".backgroundServices.activitiesService.ActivitiesLogger"
+            android:enabled="true" />
+        <receiver
+            android:name=".backgroundServices.gpsService.GPSLogger"
+            android:enabled="true" />
+        <receiver
+            android:name=".backgroundServices.stepsService.StepsLogger"
+            android:enabled="true" /> <!-- Pushy Declarations -->
         <!-- Pushy Notification Receiver -->
         <!-- Incoming push notifications will invoke the following BroadcastReceiver -->
-        <receiver android:name=".backgroundServices.communicationService.CommunicationReceiver" android:exported="false">
+        <receiver
+            android:name=".backgroundServices.communicationService.CommunicationReceiver"
+            android:exported="false">
             <intent-filter>
+
                 <!-- Do not modify this -->
                 <action android:name="pushy.me" />
             </intent-filter>
-        </receiver>
-
-        <!-- Pushy Update Receiver -->
+        </receiver> <!-- Pushy Update Receiver -->
         <!-- Do not modify - internal BroadcastReceiver that restarts the listener service -->
-        <receiver android:name="me.pushy.sdk.receivers.PushyUpdateReceiver" android:exported="false">
+        <receiver
+            android:name="me.pushy.sdk.receivers.PushyUpdateReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
-        </receiver>
-
-        <!-- Pushy Boot Receiver -->
+        </receiver> <!-- Pushy Boot Receiver -->
         <!-- Do not modify - internal BroadcastReceiver that restarts the listener service -->
-        <receiver android:name="me.pushy.sdk.receivers.PushyBootReceiver" android:exported="false">
+        <receiver
+            android:name="me.pushy.sdk.receivers.PushyBootReceiver"
+            android:exported="false">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
-        </receiver>
-
-        <!-- Pushy Socket Service -->
+        </receiver> <!-- Pushy Socket Service -->
         <!-- Do not modify - internal service -->
-        <service android:name="me.pushy.sdk.services.PushySocketService"/>
-
-        <!-- Pushy Job Service (added in Pushy SDK 1.0.35) -->
+        <service android:name="me.pushy.sdk.services.PushySocketService" /> <!-- Pushy Job Service (added in Pushy SDK 1.0.35) -->
         <!-- Do not modify - internal service -->
-        <service android:name="me.pushy.sdk.services.PushyJobService"
-            android:permission="android.permission.BIND_JOB_SERVICE"
-            android:exported="true" />
-
-        <!-- End Pushy Declarations -->
-
+        <service
+            android:name="me.pushy.sdk.services.PushyJobService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
 </manifest>

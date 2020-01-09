@@ -6,20 +6,25 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.viewModelScope
 import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.database.entity.Activities
+import com.chickenduy.locationApp.data.database.entity.ActivitiesDetailed
 import com.chickenduy.locationApp.data.database.entity.GPS
+import com.chickenduy.locationApp.data.repository.ActivitiesDetailedRepository
 import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.chickenduy.locationApp.data.repository.GPSRepository
 import kotlinx.coroutines.launch
 
 class ActivitiesViewModel(application: Application) : AndroidViewModel(application) {
-
-
     private val activitiesRepository: ActivitiesRepository
     val allActivities: LiveData<List<Activities>>
+    private val activitiesDetailedRepository: ActivitiesDetailedRepository
+    val allActivitiesDetailed: LiveData<List<ActivitiesDetailed>>
 
     init {
         val activitiesDao = TrackingDatabase.getDatabase(application).activitiesDao()
         activitiesRepository = ActivitiesRepository(activitiesDao)
         allActivities = activitiesRepository.allActivities
+        val activitiesDetailedDao = TrackingDatabase.getDatabase(application).activitiesDetailedDao()
+        activitiesDetailedRepository = ActivitiesDetailedRepository(activitiesDetailedDao)
+        allActivitiesDetailed = activitiesDetailedRepository.allActivities
     }
 }

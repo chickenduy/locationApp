@@ -10,7 +10,8 @@ import com.chickenduy.locationApp.R
 
 class ActivitiesView : AppCompatActivity(){
 
-    private lateinit var activitiesViewModel: ActivitiesViewModel
+//    private lateinit var activitiesViewModel: ActivitiesViewModel
+    private lateinit var activitiesDetailedViewModel: ActivitiesViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,9 +21,14 @@ class ActivitiesView : AppCompatActivity(){
         val adapter = ActivitiesListAdapter(this)
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
-        activitiesViewModel = ViewModelProvider(this).get(ActivitiesViewModel::class.java)
+//        activitiesViewModel = ViewModelProvider(this).get(ActivitiesViewModel::class.java)
+//        activitiesViewModel.allActivities.observe(this, Observer { activities ->
+//            // Update the cached copy of the words in the adapter.
+//            activities?.let { adapter.setList(it) }
+//        })
 
-        activitiesViewModel.allActivities.observe(this, Observer { activities ->
+        activitiesDetailedViewModel = ViewModelProvider(this).get(ActivitiesViewModel::class.java)
+        activitiesDetailedViewModel.allActivitiesDetailed.observe(this, Observer { activities ->
             // Update the cached copy of the words in the adapter.
             activities?.let { adapter.setList(it) }
         })

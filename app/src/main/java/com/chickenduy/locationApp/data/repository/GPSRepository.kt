@@ -28,7 +28,7 @@ class GPSRepository (
     }
 
     @WorkerThread
-    suspend fun getByTimestamps(minTimestamp: Long, maxTimestamp: Long): List<GPS> {
+    fun getByTimestamps(minTimestamp: Long, maxTimestamp: Long): List<GPS> {
         return gpsDao.getByTimestamps(minTimestamp, maxTimestamp)
     }
 

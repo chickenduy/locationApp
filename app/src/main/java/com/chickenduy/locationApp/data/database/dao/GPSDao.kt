@@ -19,7 +19,7 @@ interface GPSDao {
     suspend fun getById(id: Long): GPS
 
     @Query("SELECT * FROM gps_table WHERE timestamp > :start AND timestamp < :end ORDER BY timestamp DESC")
-    suspend fun getByTimestamps(start: Long, end: Long): List<GPS>
+    fun getByTimestamps(start: Long, end: Long): List<GPS>
 
     @Query(" SELECT * FROM gps_table ORDER BY ABS(timestamp - :timestamp) ASC LIMIT 1")
     fun getByTimestamp(timestamp: Long): GPS
