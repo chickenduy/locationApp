@@ -11,7 +11,6 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.data.BasicData
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.Coordinates
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.Location
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.message.*
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.LocationOptions
@@ -41,7 +40,6 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.*
-
 
 /**
  * This class manages incoming requests and forwarding to next device or to server
@@ -194,12 +192,14 @@ class CommunicationReceiver: BroadcastReceiver() {
 
     private fun aggregateLocation() {
         val locations = gpsRepository.getByTimestamp(this.locationOptions!!.timestamp)
-        val accuracy = 10.0.pow(this.locationOptions!!.accuracy).toInt()
-        val location = Location(
-            Coordinates(floorToDecimal(locations.longitude, accuracy), floorToDecimal(locations.latitude, accuracy)),
-            Coordinates(ceilToDecimal(locations.longitude, accuracy), ceilToDecimal(locations.latitude, accuracy))
-        )
-        this.basicData!!.raw.add(location)
+        if(kotlin.math.abs(locations.timestamp - this.locationOptions!!.timestamp) < 120000) {
+            val accuracy = 10.0.pow(this.locationOptions!!.accuracy).toInt()
+            val blCorner = Location(floorToDecimal(locations.longitude, accuracy), floorToDecimal(locations.latitude, accuracy))
+            val trCorner = Location(ceilToDecimal(locations.longitude, accuracy), ceilToDecimal(locations.latitude, accuracy))
+            val midpoint = haversine_midpoint(blCorner, trCorner)
+            val location = Location(midpoint.lat, midpoint.long)
+            this.basicData!!.raw.add(location)
+        }
         this.basicData!!.n++
     }
 
@@ -273,21 +273,21 @@ class CommunicationReceiver: BroadcastReceiver() {
         }
 
         val d = when(this.requestHeader.type) {
-            "steps" -> Data(key, iv, this.requestHeader, this.requestOptions, this.stepsOptions, this.basicData)
-            "walk" -> Data(key, iv, this.requestHeader, this.requestOptions, this.walkOptions, this.basicData)
-            "location" -> Data(key, iv, this.requestHeader, this.requestOptions, this.locationOptions, this.basicData)
-            "presence" -> Data(key, iv, this.requestHeader, this.requestOptions, this.presenceOptions, this.basicData)
+            "steps" -> Data(key, iv, this.requestHeader, this.requestOptions, this.stepsOptions, encrypted)
+            "walk" -> Data(key, iv, this.requestHeader, this.requestOptions, this.walkOptions, encrypted)
+            "location" -> Data(key, iv, this.requestHeader, this.requestOptions, this.locationOptions, encrypted)
+            "presence" -> Data(key, iv, this.requestHeader, this.requestOptions, this.presenceOptions, encrypted)
             else -> throw Exception("error")
         }
-        val m = Message(this.requestOptions.group[0].id, 120, d)
+        val m = PushyMessage(this.requestOptions.group[0].id, 120, d)
 
-        val message = JSONObject(gson.toJson(m, Message::class.java))
+        val message = JSONObject(gson.toJson(m, PushyMessage::class.java))
         val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
+        jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
 
         //Start waiting for confirmation
         this.job = GlobalScope.launch {
-            // TODO: send to next participant
             delay(150000)
             prepareForNextParticipant()
         }
@@ -335,6 +335,7 @@ class CommunicationReceiver: BroadcastReceiver() {
         }
         val message = JSONObject(gson.toJson(m, ServerMessage::class.java))
         val jsonRequest = JsonObjectRequest(Request.Method.POST, testURI + "aggregation${requestHeader.type}", message, res, err)
+        jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
     }
 
@@ -353,6 +354,7 @@ class CommunicationReceiver: BroadcastReceiver() {
         val m = PushyMessage(to, 120, confirmationData)
         val message = JSONObject(gson.toJson(m, PushyMessage::class.java))
         val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
+        jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
     }
 
@@ -452,12 +454,24 @@ class CommunicationReceiver: BroadcastReceiver() {
         val long = (long2 - long1) * d2r
         val lat = (lat2 - lat1) * d2r
 
-        val a1 = sin(lat / 2.0) * sin(lat / 2.0)
-        val a2 = cos(lat1 * d2r) * cos(lat2 * d2r)
-        val a3 = sin(long / 2.0) * sin(long / 2.0)
+        val a1 =sin(lat / 2.0) *sin(lat / 2.0)
+        val a2 =cos(lat1 * d2r) *cos(lat2 * d2r)
+        val a3 =sin(long / 2.0) *sin(long / 2.0)
         val a = a1 + a2 * a3
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        val c = 2 *atan2(sqrt(a),sqrt(1 - a))
 
         return 6367 * c
+    }
+
+    private fun haversine_midpoint(blCorner: Location, trCorner: Location): Location {
+        val bx = cos(trCorner.lat) *cos(trCorner.long - blCorner.long)
+        val by =cos(trCorner.lat) *sin(trCorner.long - blCorner.long)
+        val lat3 =atan2(
+           sin(blCorner.lat) +sin(trCorner.lat),
+           sqrt((cos(blCorner.lat) + bx) * (cos(blCorner.lat) + bx) + by * by)
+        )
+        val long3 = blCorner.long +atan2(by,cos(blCorner.lat) + bx)
+
+        return Location(lat3, long3)
     }
 }

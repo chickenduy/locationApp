@@ -1,6 +1,5 @@
 package com.chickenduy.locationApp.backgroundServices.stepsService
 
-import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -9,8 +8,7 @@ import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.database.entity.Steps
 import com.chickenduy.locationApp.data.repository.StepsRepository
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.*
 
 /**
@@ -29,7 +27,7 @@ class StepsLogger: SensorEventListener {
         // We only save steps data at a 60 seconds interval
             if (now - lastTimeStamp > 1000 * 10) {
             lastTimeStamp = now
-            GlobalScope.launch {
+            runBlocking {
                 stepsRepository.insert(
                     Steps(
                         0,

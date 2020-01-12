@@ -14,8 +14,7 @@ import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.google.android.gms.location.ActivityTransitionEvent
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.*
 
 /**
@@ -49,12 +48,12 @@ class ActivitiesLogger: BroadcastReceiver() {
                     it.transitionType,
                     it.activityType
                 )
-                GlobalScope.launch {
+                runBlocking {
                     activitiesRepository.insert(activity)
                     Log.d(logTAG, "Saved activities")
                 }
                 if (it.transitionType == 0) {
-                    GlobalScope.launch {
+                    runBlocking {
                         val latestActivitiesEntered = activitiesRepository.getLatestEntered()
                         val activityDetailed = ActivitiesDetailed(
                             0L,

@@ -6,13 +6,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Base64
 import android.util.Log
+import androidx.annotation.RestrictTo
 import androidx.core.content.ContextCompat
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import me.pushy.sdk.Pushy
 import org.json.JSONObject
 import java.security.KeyPairGenerator
@@ -38,7 +38,7 @@ class CommunicationService(private val context: Context) {
         // Called when the app is installed for the first time
         if (!sharedPref.contains(ISREGISTERED)) {
             Log.d(TAG, "installing for the first time")
-            GlobalScope.launch {
+            runBlocking {
                 registerDevice()
                 Pushy.listen(context)
                 Pushy.subscribe("online", context)            }
@@ -48,7 +48,7 @@ class CommunicationService(private val context: Context) {
             // Called when device is not registered on server
             if (sharedPref.getBoolean(ISREGISTERED, false)) {
                 Log.d(TAG, "registering on server")
-                GlobalScope.launch {
+                runBlocking {
                     registerDevice()
                 }
             }
@@ -74,11 +74,6 @@ class CommunicationService(private val context: Context) {
      */
     private fun updateDevice() {
         Log.d(TAG, "Pinging Server")
-        val token = Pushy.getDeviceCredentials(context).token
-
-        val pingRequest = JSONObject()
-        pingRequest.put("id", token)
-        pingRequest.put(PASSWORD, sharedPref.getString(PASSWORD, "") )
 
         val res = Response.Listener<JSONObject> { response ->
             Log.d(TAG, response.toString())
@@ -90,7 +85,15 @@ class CommunicationService(private val context: Context) {
             registerDevice()
         }
 
+        val token = Pushy.getDeviceCredentials(context).token
+
+        val pingRequest = JSONObject()
+        pingRequest.put("id", token)
+        pingRequest.put(PASSWORD, sharedPref.getString(PASSWORD, ""))
+
         val jsonRequest = JsonObjectRequest(Request.Method.PATCH, serverURI + "crowd/ping", pingRequest, res, err)
+        Log.d(TAG, pingRequest.toString(2))
+        jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
     }
 
@@ -98,6 +101,7 @@ class CommunicationService(private val context: Context) {
      * Register the device on Pushy and Node server
      */
     private fun registerDevice() {
+        Log.d(TAG, "Register Device")
 
         val res = Response.Listener<JSONObject> { response ->
             Log.d(TAG, response.toString())
@@ -113,9 +117,7 @@ class CommunicationService(private val context: Context) {
             sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
         }
 
-        Log.d(TAG, "Register Device")
         val token = if (!Pushy.isRegistered(context)) Pushy.register(context) else Pushy.getDeviceCredentials(context).token
-
         var publicKey = sharedPref.getString(PUBLICKEY, "")
 
         /**
@@ -138,6 +140,8 @@ class CommunicationService(private val context: Context) {
         request.put(PUBLICKEY, publicKey)
 
         val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "crowd", request, res, err)
+        Log.d(TAG, request.toString())
+        jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
     }
 

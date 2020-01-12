@@ -4,8 +4,7 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.os.Build
-import android.os.IBinder
+import android.os.*
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -23,14 +22,51 @@ class BackgroundService : Service() {
 
     private val logTAG = "BACKGROUNDSERVICE"
 
+    private var serviceLooper: Looper? = null
+    private var serviceHandler: ServiceHandler? = null
+
     private lateinit var notification: Notification
     private lateinit var gpsService: GPSService
     private lateinit var activitiesService: ActivitiesService
     private lateinit var communicationService: CommunicationService
     private lateinit var stepsService: StepsService
 
+    private var serviceStarterAlarmManager: AlarmManager? = null
+
+    private inner class ServiceHandler(looper: Looper) : Handler(looper) {
+
+        override fun handleMessage(msg: Message) {
+            if (msg.arg2 != -1) {
+                gpsService.startTracking(msg.arg2)
+            }
+        }
+    }
+
+
     override fun onCreate() {
         Log.d(logTAG, "Starting BackgroundService")
+
+        setUpApp()
+
+        HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_FOREGROUND).apply {
+            start()
+            // Get the HandlerThread's Looper and use it for our Handler
+            serviceLooper = looper
+            serviceHandler = ServiceHandler(looper)
+        }
+
+    }
+
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        Log.d(logTAG, "Starting Command")
+        super.onStartCommand(intent, flags, startId)
+
+        serviceHandler?.obtainMessage()?.also { msg ->
+            msg.arg1 = startId
+            msg.arg2 = intent.getIntExtra("activity", -1)
+            serviceHandler?.sendMessage(msg)
+        }
+
         if (!this::notification.isInitialized) {
             notification = buildNotification(this)
             startForeground(1337, notification)
@@ -38,6 +74,18 @@ class BackgroundService : Service() {
         else {
             startForeground(1337, notification)
         }
+        return START_STICKY
+    }
+
+    private fun setUpApp() {
+        if (!this::notification.isInitialized) {
+            notification = buildNotification(this)
+            startForeground(1337, notification)
+        }
+        else {
+            startForeground(1337, notification)
+        }
+
         // Start GPS Tracking
         gpsService = GPSService(applicationContext)
         // Start Activities Tracking
@@ -46,16 +94,6 @@ class BackgroundService : Service() {
         stepsService = StepsService(applicationContext)
         // Start the Communication Service (Server, next Device)
         communicationService = CommunicationService(applicationContext)
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(logTAG, "Starting Command")
-        super.onStartCommand(intent, flags, startId)
-        // If onStartCommand is called by new activity, change interval of gps calls
-        val newInterval = intent?.extras?.getInt("activity")
-        if(newInterval != null)
-            gpsService.startTracking(newInterval)
-        return START_STICKY
     }
 
     /**
@@ -118,6 +156,24 @@ class BackgroundService : Service() {
             logTAG,
             "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
         )
+
+        val intent = Intent(this, BootUpReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(this, 1, intent, 0);
+
+        if (pendingIntent == null) {
+            Toast.makeText(this, "Some problems with creating of PendingIntent", Toast.LENGTH_LONG).show();
+        } else {
+            if (serviceStarterAlarmManager == null) {
+                serviceStarterAlarmManager = (getSystemService(ALARM_SERVICE) as AlarmManager)
+                serviceStarterAlarmManager!!.setRepeating(
+                    AlarmManager.ELAPSED_REALTIME,
+                    SystemClock.elapsedRealtime() + 5*1000,
+                    1*1000,
+                    pendingIntent
+                )
+            }
+        }
+
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
     }
 
@@ -140,23 +196,10 @@ class BackgroundService : Service() {
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
     }
 
-    override fun onUnbind(intent: Intent?): Boolean {
-        Toast.makeText(
-            this,
-            "Application has been closed, trying to restart BackgroundService",
-            Toast.LENGTH_SHORT
-        ).show()
-        Log.e(
-            logTAG,
-            "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
-        )
-        sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
-        return super.onUnbind(intent)
-    }
 
     /**
      * This is required for a Service
-     * */
+     */
     override fun onBind(intent: Intent): IBinder? {
         return null
     }

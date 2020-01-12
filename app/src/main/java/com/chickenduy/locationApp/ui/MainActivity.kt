@@ -19,26 +19,20 @@ import com.chickenduy.locationApp.ui.steps.StepsView
 
 class MainActivity : AppCompatActivity() {
     private val ACCESS_FINE_LOCATION_REQUEST_CODE = 1
-    private val EXTERNAL_STORAGE_REQUEST_CODE = 2
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
                 this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 ACCESS_FINE_LOCATION_REQUEST_CODE
             )
-            ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                EXTERNAL_STORAGE_REQUEST_CODE
-            )
         } else {
             startBackgroundService()
         }
-
+        // Restarts app on crash
 //        Thread.setDefaultUncaughtExceptionHandler(
 //            MyExceptionHandler(
 //                this

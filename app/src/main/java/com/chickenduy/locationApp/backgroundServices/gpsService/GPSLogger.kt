@@ -9,10 +9,7 @@ import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.database.entity.GPS
 import com.chickenduy.locationApp.data.repository.GPSRepository
 import com.google.android.gms.location.LocationResult
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * This class saves GPS data to a database
@@ -31,7 +28,7 @@ class GPSLogger: BroadcastReceiver() {
                     it.longitude.toFloat(),
                     it.latitude.toFloat()
                 )
-                val test = GlobalScope.launch {
+                runBlocking {
                     gpsRepository.insert(gps)
                 }
             }
