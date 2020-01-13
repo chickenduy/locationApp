@@ -2,7 +2,8 @@ package com.chickenduy.locationApp.backgroundServices.communicationService.model
 
 class LocationOptions(
     val timestamp: Long,
-    val accuracy: Int){
+    val accuracy: Int,
+    val anonymity: Int){
 
     override fun toString(): String {
         return "{\nstart: ${timestamp},\naccuracy: ${accuracy}\n}"

@@ -14,6 +14,8 @@ import com.chickenduy.locationApp.backgroundServices.activitiesService.Activitie
 import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
 import com.chickenduy.locationApp.backgroundServices.stepsService.StepsService
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 /**
  * This class handles all logic, it starts all location related services
@@ -46,7 +48,9 @@ class BackgroundService : Service() {
     override fun onCreate() {
         Log.d(logTAG, "Starting BackgroundService")
 
-        setUpApp()
+        GlobalScope.launch {
+            setUpApp()
+        }
 
         HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_FOREGROUND).apply {
             start()
@@ -69,9 +73,6 @@ class BackgroundService : Service() {
 
         if (!this::notification.isInitialized) {
             notification = buildNotification(this)
-            startForeground(1337, notification)
-        }
-        else {
             startForeground(1337, notification)
         }
         return START_STICKY

@@ -22,13 +22,12 @@ import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.chickenduy.locationApp.data.repository.GPSRepository
 import com.chickenduy.locationApp.data.repository.StepsRepository
 import com.google.gson.Gson
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import me.pushy.sdk.Pushy
 import org.joda.time.DateTime
 import org.json.JSONObject
+import java.lang.Math.toDegrees
+import java.lang.Math.toRadians
 import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.SecureRandom
@@ -81,13 +80,12 @@ class CommunicationReceiver: BroadcastReceiver() {
      */
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "Received Notification")
-
         flushVariables()
 
         // Receive Confirmation
         // TODO: OnConfirmation -> cancel sleep thread
-        val confirmation = intent.getBooleanExtra("confirmation", false)
-        if (confirmation) {
+        val confirmation = intent.getStringExtra("confirmation")
+        if (!confirmation.isNullOrEmpty()) {
             Log.d(TAG, "cancel timeout")
             job.cancel()
             return
@@ -102,6 +100,7 @@ class CommunicationReceiver: BroadcastReceiver() {
         val requestData = intent.getStringExtra(REQUESTDATA)
         val decryptedData: String?
         if(requestHeader.isNullOrEmpty() || requestOptions.isNullOrEmpty() || requestData.isNullOrEmpty()) {
+            Log.e(TAG, intent.extras.toString())
             Log.e(TAG, "Got wrong request format")
             return
         }
@@ -116,16 +115,8 @@ class CommunicationReceiver: BroadcastReceiver() {
             intent.getStringExtra("data")
         }
 
-        // TODO: Start aggregation
         this.requestHeader = gson.fromJson(requestHeader, RequestHeader::class.java)
         this.requestOptions = gson.fromJson(requestOptions, RequestOptions::class.java)
-
-        Log.d(TAG, this.requestOptions.from)
-
-        // TODO: Send confirmation
-        if(this.requestOptions.from.isNotEmpty()) {
-            sendConfirmation(this.requestOptions.from)
-        }
 
         when(this.requestHeader.type) {
             "steps" -> {
@@ -137,6 +128,7 @@ class CommunicationReceiver: BroadcastReceiver() {
                 Log.d(TAG, "Starting aggregation for walking")
                 this.walkOptions = gson.fromJson(requestData, WalkOptions::class.java)
                 this.basicData = gson.fromJson(decryptedData, BasicData::class.java)
+                aggregateWalk()
             }
             "location" -> {
                 Log.d(TAG, "Starting aggregation for location")
@@ -170,7 +162,6 @@ class CommunicationReceiver: BroadcastReceiver() {
             steps += it.steps
         }
         this.basicData!!.addRaw(steps)
-        // TODO: Aggregate activity into data
     }
 
     /**
@@ -187,16 +178,15 @@ class CommunicationReceiver: BroadcastReceiver() {
             steps += it.steps
         }
         this.basicData!!.addRaw(steps)
-        // TODO: Aggregate activity into data
     }
 
     private fun aggregateLocation() {
         val locations = gpsRepository.getByTimestamp(this.locationOptions!!.timestamp)
-        if(kotlin.math.abs(locations.timestamp - this.locationOptions!!.timestamp) < 120000) {
+        if(abs(locations.timestamp - this.locationOptions!!.timestamp) < 120000) {
             val accuracy = 10.0.pow(this.locationOptions!!.accuracy).toInt()
             val blCorner = Location(floorToDecimal(locations.longitude, accuracy), floorToDecimal(locations.latitude, accuracy))
             val trCorner = Location(ceilToDecimal(locations.longitude, accuracy), ceilToDecimal(locations.latitude, accuracy))
-            val midpoint = haversine_midpoint(blCorner, trCorner)
+            val midpoint = haversineMidpoint(blCorner, trCorner)
             val location = Location(midpoint.lat, midpoint.long)
             this.basicData!!.raw.add(location)
         }
@@ -213,7 +203,7 @@ class CommunicationReceiver: BroadcastReceiver() {
         Log.d(TAG, "Looking for lat: ${this.presenceOptions!!.lat}, long: ${this.presenceOptions!!.long}")
         for (location in locations) {
             Log.d(TAG, "Saved location with lat: ${location.latitude}, long: ${location.longitude}")
-            val distance = haversine_km(this.presenceOptions!!.lat, this.presenceOptions!!.long, location.latitude.toDouble(), location.longitude.toDouble())
+            val distance = haversineKm(this.presenceOptions!!.lat, this.presenceOptions!!.long, location.latitude.toDouble(), location.longitude.toDouble())
             if (distance <= presenceOptions!!.radius) {
                 Log.d(TAG, "Distance was $distance")
                 this.basicData!!.addRaw(1)
@@ -223,7 +213,6 @@ class CommunicationReceiver: BroadcastReceiver() {
         }
         this.basicData!!.addRaw(0)
         this.basicData!!.n++
-        // TODO: Aggregate activity into data
     }
 
     private fun floorToDecimal(number: Float, accuracy: Int): Float {
@@ -235,13 +224,13 @@ class CommunicationReceiver: BroadcastReceiver() {
     }
 
     private fun prepareForNextParticipant() {
-
-        this.requestOptions.from = Pushy.getDeviceCredentials(ctx).token
+        val from = this.requestOptions.from
+        this.requestOptions.from = this.requestOptions.group[0].id
         this.requestOptions.group.removeAt(0)
 
         if (this.requestOptions.group.size == 0) {
             Log.d(TAG, "Last in group, send results to server")
-            sendToServer()
+            sendToServer(from)
             return
         }
 
@@ -254,7 +243,8 @@ class CommunicationReceiver: BroadcastReceiver() {
         forwardToNextParticipant(
             encryptKey(key.encoded, requestOptions.group[0].publicKey)!!,
             Base64.encodeToString(ivParameterSpec.iv, Base64.NO_WRAP),
-            encryptedData
+            encryptedData,
+            from
         )
     }
 
@@ -262,10 +252,11 @@ class CommunicationReceiver: BroadcastReceiver() {
      * Forward newData to the next participant in the group
      * @param m containing next target and group ids
      */
-    private fun forwardToNextParticipant(key: String, iv: String, encrypted: String) {
+    private fun forwardToNextParticipant(key: String, iv: String, encrypted: String, from: String) {
 
         val res = Response.Listener<JSONObject> {
             Log.d(TAG, "Sent to next participant")
+            sendConfirmation(from)
         }
 
         val err = Response.ErrorListener {
@@ -293,9 +284,10 @@ class CommunicationReceiver: BroadcastReceiver() {
         }
     }
 
-    private fun sendToServer() {
+    private fun sendToServer(from: String) {
         val res = Response.Listener<JSONObject> {
             Log.d(TAG, "Send result successfully")
+            sendConfirmation(from)
         }
 
         val err = Response.ErrorListener {
@@ -334,12 +326,17 @@ class CommunicationReceiver: BroadcastReceiver() {
             else -> throw Exception("test")
         }
         val message = JSONObject(gson.toJson(m, ServerMessage::class.java))
+        Log.e(TAG, message.toString(2))
         val jsonRequest = JsonObjectRequest(Request.Method.POST, testURI + "aggregation${requestHeader.type}", message, res, err)
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
     }
 
     private fun sendConfirmation(to: String) {
+        if(to.isNullOrEmpty()) {
+            Log.d(TAG, "first target for aggregation")
+            return
+        }
 
         val res = Response.Listener<JSONObject> {
             Log.d(TAG, "Send confirmation successfully")
@@ -350,9 +347,11 @@ class CommunicationReceiver: BroadcastReceiver() {
         }
 
         val confirmationData = JSONObject()
-        confirmationData.put("confirmation", true)
-        val m = PushyMessage(to, 120, confirmationData)
-        val message = JSONObject(gson.toJson(m, PushyMessage::class.java))
+        confirmationData.put("confirmation", "true")
+        val message = JSONObject()
+        message.put("to", to)
+        message.put("time_to_live", 120)
+        message.put("data", confirmationData)
         val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
@@ -449,29 +448,44 @@ class CommunicationReceiver: BroadcastReceiver() {
         this.walkOptions = null
     }
 
-    private fun haversine_km(lat1: Double, long1: Double, lat2: Double, long2: Double): Double {
+    /**
+     * formula from https://www.movable-type.co.uk/scripts/latlong.html
+     */
+    private fun haversineKm(lat1: Double, long1: Double, lat2: Double, long2: Double): Double {
         val d2r = 0.0174532925199433
         val long = (long2 - long1) * d2r
         val lat = (lat2 - lat1) * d2r
 
-        val a1 =sin(lat / 2.0) *sin(lat / 2.0)
-        val a2 =cos(lat1 * d2r) *cos(lat2 * d2r)
-        val a3 =sin(long / 2.0) *sin(long / 2.0)
+        val a1 = sin(lat / 2.0) *sin(lat / 2.0)
+        val a2 = cos(lat1 * d2r) *cos(lat2 * d2r)
+        val a3 = sin(long / 2.0) *sin(long / 2.0)
         val a = a1 + a2 * a3
         val c = 2 *atan2(sqrt(a),sqrt(1 - a))
 
         return 6367 * c
     }
 
-    private fun haversine_midpoint(blCorner: Location, trCorner: Location): Location {
-        val bx = cos(trCorner.lat) *cos(trCorner.long - blCorner.long)
-        val by =cos(trCorner.lat) *sin(trCorner.long - blCorner.long)
-        val lat3 =atan2(
-           sin(blCorner.lat) +sin(trCorner.lat),
-           sqrt((cos(blCorner.lat) + bx) * (cos(blCorner.lat) + bx) + by * by)
-        )
-        val long3 = blCorner.long +atan2(by,cos(blCorner.lat) + bx)
 
-        return Location(lat3, long3)
+    /**
+     * formula from https://stackoverflow.com/questions/4656802/midpoint-between-two-latitude-and-longitude
+     */
+    private fun haversineMidpoint(blCorner: Location, trCorner: Location): Location {
+
+        val dLon = toRadians(trCorner.long.toDouble() - blCorner.long.toDouble())
+
+        //convert to radians
+        val lat1 = toRadians(blCorner.lat.toDouble())
+        val lat2 = toRadians(trCorner.lat.toDouble())
+        val lon1 = toRadians(blCorner.long.toDouble())
+
+        val Bx = cos(lat2) * cos(dLon)
+        val By = cos(lat2) * sin(dLon)
+        val lat3 = atan2(
+            sin(lat1) + sin(lat2),
+            sqrt((cos(lat1) + Bx) * (cos(lat1) + Bx) + By * By)
+        )
+        val long3: Double = lon1 + atan2(By, cos(lat1) + Bx)
+
+        return Location(toDegrees(lat3).toFloat(), toDegrees(long3).toFloat())
     }
 }

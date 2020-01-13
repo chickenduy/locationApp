@@ -15,7 +15,7 @@ import com.google.android.gms.location.LocationServices
  * This class tracks GPS data in a certain interval
  */
 class GPSService(private val context: Context) {
-    private val logTAG = "GPSSERVICE"
+    private val TAG = "GPSSERVICE"
 
     private lateinit var locationProvider: FusedLocationProviderClient
     private lateinit var mPendingIntent: PendingIntent
@@ -24,7 +24,7 @@ class GPSService(private val context: Context) {
     private val SECONDS = 1000L
 
     init {
-        Log.d(logTAG, "Starting GPSService")
+        Log.d(TAG, "Starting GPSService")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
@@ -40,6 +40,7 @@ class GPSService(private val context: Context) {
     }
 
     fun startTracking(activity: Int) {
+        Log.d(TAG, "startTracking")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
@@ -52,7 +53,7 @@ class GPSService(private val context: Context) {
                 else -> SECONDS
             }
 
-            Log.d(logTAG, "change interval speed for ${interval/SECONDS}s")
+            Log.d(TAG, "change interval speed for ${interval/SECONDS}s")
             val request = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(interval)
@@ -62,7 +63,7 @@ class GPSService(private val context: Context) {
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)
 
             task.addOnFailureListener { e: Exception ->
-                Log.e(logTAG, "${e.message}")
+                Log.e(TAG, "${e.message}")
             }
         }
         else

@@ -91,7 +91,7 @@ class CommunicationService(private val context: Context) {
         pingRequest.put("id", token)
         pingRequest.put(PASSWORD, sharedPref.getString(PASSWORD, ""))
 
-        val jsonRequest = JsonObjectRequest(Request.Method.PATCH, serverURI + "crowd/ping", pingRequest, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, testURI + "crowd/ping", pingRequest, res, err)
         Log.d(TAG, pingRequest.toString(2))
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
@@ -139,7 +139,7 @@ class CommunicationService(private val context: Context) {
         request.put("id", token)
         request.put(PUBLICKEY, publicKey)
 
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "crowd", request, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, testURI + "crowd", request, res, err)
         Log.d(TAG, request.toString())
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
