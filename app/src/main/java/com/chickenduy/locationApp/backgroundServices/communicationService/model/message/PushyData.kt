@@ -1,6 +1,9 @@
 package com.chickenduy.locationApp.backgroundServices.communicationService.model.message
 
-class Data(
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestHeader
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestOptions
+
+class PushyData(
     val encryptionKey: String,
     val iv: String,
     val requestHeader: RequestHeader,

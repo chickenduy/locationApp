@@ -1,4 +1,4 @@
-package com.chickenduy.locationApp.backgroundServices.communicationService.model.data
+package com.chickenduy.locationApp.backgroundServices.communicationService.model.entity
 
 class BasicData(
     var n: Int,

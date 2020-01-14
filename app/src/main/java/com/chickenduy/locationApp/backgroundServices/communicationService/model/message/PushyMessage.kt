@@ -3,6 +3,6 @@ package com.chickenduy.locationApp.backgroundServices.communicationService.model
 class PushyMessage(
     val to: String,
     val time_to_live: Int,
-    val data: Any
+    val data: PushyData
 ) {
 }

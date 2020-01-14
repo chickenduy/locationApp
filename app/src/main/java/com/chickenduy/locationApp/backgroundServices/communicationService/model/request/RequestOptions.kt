@@ -1,4 +1,4 @@
-package com.chickenduy.locationApp.backgroundServices.communicationService.model.message
+package com.chickenduy.locationApp.backgroundServices.communicationService.model.request
 
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.Crowd
 

@@ -5,36 +5,28 @@ import android.content.Context
 import android.content.Intent
 import android.util.Base64
 import android.util.Log
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
 import com.chickenduy.locationApp.MyApp
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.data.BasicData
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.BasicData
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.Location
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.message.*
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.LocationOptions
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.PresenceOptions
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.StepsOptions
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.options.WalkOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.LocationOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.PresenceOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.StepsOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.WalkOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestHeader
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestOptions
 import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.chickenduy.locationApp.data.repository.GPSRepository
 import com.chickenduy.locationApp.data.repository.StepsRepository
 import com.google.gson.Gson
-import kotlinx.coroutines.*
-import me.pushy.sdk.Pushy
+import kotlinx.coroutines.Job
 import org.joda.time.DateTime
-import org.json.JSONObject
 import java.lang.Math.toDegrees
 import java.lang.Math.toRadians
 import java.security.KeyFactory
 import java.security.PrivateKey
-import java.security.SecureRandom
 import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -50,28 +42,20 @@ class CommunicationReceiver: BroadcastReceiver() {
     private val REQUESTHEADER = "requestHeader"
     private val REQUESTOPTIONS = "requestOptions"
     private val REQUESTDATA = "requestData"
-    private val DATA = "data"
 
     private val ctx = MyApp.instance
     private val sharedPref = ctx.getSharedPreferences("options", Context.MODE_PRIVATE)
-    private val testURI = "http://10.0.2.2:3000/"
-    private val serverURI = "https://locationserver.eu-gb.mybluemix.net/"
-    private val pushyURI = "https://api.pushy.me/push?api_key=cfd5f664afd97266ed8ec89ac697b9dcded0afced39635320fc5bfb7a950c705"
-    private val queue = Volley.newRequestQueue(this.ctx)
+
     private val activitiesRepository: ActivitiesRepository = ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
     private val gpsRepository: GPSRepository = GPSRepository(TrackingDatabase.getDatabase(MyApp.instance).gPSDao())
     private val stepsRepository: StepsRepository = StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
+
     private val gson = Gson()
-    private lateinit var job: Job
 
-    private lateinit var requestHeader: RequestHeader
-    private lateinit var requestOptions: RequestOptions
-
-    private var locationOptions: LocationOptions? = null
-    private var stepsOptions: StepsOptions? = null
-    private var walkOptions: WalkOptions? = null
-    private var presenceOptions: PresenceOptions? = null
-    private var basicData: BasicData? = null
+    private var communicationHandlerSteps: CommunicationHandler<StepsOptions>? = null
+    private var communicationHandlerWalk: CommunicationHandler<WalkOptions>? = null
+    private var communicationHandlerLocation: CommunicationHandler<LocationOptions>? = null
+    private var communicationHandlerPresence: CommunicationHandler<PresenceOptions>? = null
 
     /**
      * Function called upon receiving Pushy notification
@@ -80,14 +64,23 @@ class CommunicationReceiver: BroadcastReceiver() {
      */
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "Received Notification")
-        flushVariables()
 
-        // Receive Confirmation
-        // TODO: OnConfirmation -> cancel sleep thread
+        // Receive Confirmation and cancel timeout
         val confirmation = intent.getStringExtra("confirmation")
         if (!confirmation.isNullOrEmpty()) {
             Log.d(TAG, "cancel timeout")
-            job.cancel()
+            if(communicationHandlerSteps != null) {
+                communicationHandlerSteps!!.cancel()
+            }
+            if(communicationHandlerWalk != null) {
+                communicationHandlerWalk!!.cancel()
+            }
+            if(communicationHandlerLocation != null) {
+                communicationHandlerLocation!!.cancel()
+            }
+            if(communicationHandlerPresence != null) {
+                communicationHandlerPresence!!.cancel()
+            }
             return
         }
 
@@ -95,17 +88,16 @@ class CommunicationReceiver: BroadcastReceiver() {
         val encryptionKey = intent.getStringExtra("encryptionKey")
         val iv = intent.getStringExtra("iv")
 
-        val requestHeader = intent.getStringExtra(REQUESTHEADER)
-        val requestOptions = intent.getStringExtra(REQUESTOPTIONS)
-        val requestData = intent.getStringExtra(REQUESTDATA)
-        val decryptedData: String?
-        if(requestHeader.isNullOrEmpty() || requestOptions.isNullOrEmpty() || requestData.isNullOrEmpty()) {
-            Log.e(TAG, intent.extras.toString())
+        val requestHeaderString = intent.getStringExtra(REQUESTHEADER)
+        val requestOptionsString = intent.getStringExtra(REQUESTOPTIONS)
+        val requestDataString = intent.getStringExtra(REQUESTDATA)
+        val decryptedDataString: String?
+        if(requestHeaderString.isNullOrEmpty() || requestOptionsString.isNullOrEmpty() || requestDataString.isNullOrEmpty()) {
             Log.e(TAG, "Got wrong request format")
             return
         }
 
-        decryptedData = if (encryptionKey != null && iv  != null) {
+        decryptedDataString = if (encryptionKey != null && iv  != null) {
             val data = intent.getStringExtra("data")
             val key = decryptKey(encryptionKey)
             val ivSpec = Base64.decode(iv, Base64.NO_WRAP)
@@ -115,104 +107,130 @@ class CommunicationReceiver: BroadcastReceiver() {
             intent.getStringExtra("data")
         }
 
-        this.requestHeader = gson.fromJson(requestHeader, RequestHeader::class.java)
-        this.requestOptions = gson.fromJson(requestOptions, RequestOptions::class.java)
+        val requestHeader = gson.fromJson(requestHeaderString, RequestHeader::class.java)
+        val requestOptions = gson.fromJson(requestOptionsString, RequestOptions::class.java)
 
-        when(this.requestHeader.type) {
+        when(requestHeader.type) {
             "steps" -> {
-                this.stepsOptions = gson.fromJson(requestData, StepsOptions::class.java)
-                this.basicData = gson.fromJson(decryptedData, BasicData::class.java)
-                aggregateSteps()
+                val stepsOptions = gson.fromJson(requestDataString, StepsOptions::class.java)
+                var basicData = gson.fromJson(decryptedDataString, BasicData::class.java)
+                basicData = aggregateSteps(stepsOptions, basicData)
+                communicationHandlerSteps = CommunicationHandler(
+                    requestHeader,
+                    requestOptions,
+                    stepsOptions,
+                    basicData
+                )
+                communicationHandlerSteps!!.send()
             }
             "walk" -> {
                 Log.d(TAG, "Starting aggregation for walking")
-                this.walkOptions = gson.fromJson(requestData, WalkOptions::class.java)
-                this.basicData = gson.fromJson(decryptedData, BasicData::class.java)
-                aggregateWalk()
+                val walkOptions = gson.fromJson(requestDataString, WalkOptions::class.java)
+                var basicData = gson.fromJson(decryptedDataString, BasicData::class.java)
+                basicData = aggregateWalk(walkOptions, basicData)
+                communicationHandlerWalk = CommunicationHandler(
+                    requestHeader,
+                    requestOptions,
+                    walkOptions,
+                    basicData
+                )
+                communicationHandlerWalk!!.send()
             }
             "location" -> {
                 Log.d(TAG, "Starting aggregation for location")
-                this.locationOptions = gson.fromJson(requestData, LocationOptions::class.java)
-                this.basicData = gson.fromJson(decryptedData, BasicData::class.java)
-                aggregateLocation()
+                val locationOptions = gson.fromJson(requestDataString, LocationOptions::class.java)
+                var basicData = gson.fromJson(decryptedDataString, BasicData::class.java)
+                basicData = aggregateLocation(locationOptions, basicData)
+                communicationHandlerLocation = CommunicationHandler(
+                    requestHeader,
+                    requestOptions,
+                    locationOptions,
+                    basicData
+                )
+                communicationHandlerLocation!!.send()
 
             }
             "presence" -> {
                 Log.d(TAG, "Starting aggregation for presence")
-                this.presenceOptions = gson.fromJson(requestData, PresenceOptions::class.java)
-                this.basicData = gson.fromJson(decryptedData, BasicData::class.java)
-                aggregatePresence()
+                val presenceOptions = gson.fromJson(requestDataString, PresenceOptions::class.java)
+                var basicData = gson.fromJson(decryptedDataString, BasicData::class.java)
+                basicData = aggregatePresence(presenceOptions, basicData)
+                communicationHandlerPresence = CommunicationHandler(
+                    requestHeader,
+                    requestOptions,
+                    presenceOptions,
+                    basicData
+                )
+                communicationHandlerPresence!!.send()
+
             }
             else -> throw Exception("error")
         }
-        prepareForNextParticipant()
+        //prepareForNextParticipant()
     }
 
     /**
      * Start internal aggregation of activity
      */
-    private fun aggregateSteps() {
-        val date = DateTime(this.stepsOptions!!.date)
+    private fun aggregateSteps(stepsOptions: StepsOptions, basicData: BasicData): BasicData {
+        val date = DateTime(stepsOptions.date)
         val startDate = date.withTimeAtStartOfDay().millis
         val endDate = date.plusDays(1).withTimeAtStartOfDay().millis
         var steps = 0
-
         val stepsArray = stepsRepository.getByTimestamp(startDate, endDate)
         stepsArray.forEach {
             steps += it.steps
         }
-        this.basicData!!.addRaw(steps)
+        basicData.raw.add(steps)
+        basicData.n++
+        return basicData
     }
 
     /**
      * Start internal aggregation of activity
      */
-    private fun aggregateWalk() {
-        val date = DateTime(this.stepsOptions!!.date)
-        val startDate = date.withTimeAtStartOfDay().millis
-        val endDate = date.plusDays(1).withTimeAtStartOfDay().millis
-        var steps = 0
-
-        val stepsArray = stepsRepository.getByTimestamp(startDate, endDate)
-        stepsArray.forEach {
-            steps += it.steps
-        }
-        this.basicData!!.addRaw(steps)
+    private fun aggregateWalk(walkOptions: WalkOptions, basicData: BasicData): BasicData {
+        val startDate = DateTime(walkOptions.start).millis
+        val endDate = DateTime(walkOptions.end).millis
+        return basicData
     }
 
-    private fun aggregateLocation() {
-        val locations = gpsRepository.getByTimestamp(this.locationOptions!!.timestamp)
-        if(abs(locations.timestamp - this.locationOptions!!.timestamp) < 120000) {
-            val accuracy = 10.0.pow(this.locationOptions!!.accuracy).toInt()
+    private fun aggregateLocation(locationOptions: LocationOptions, basicData: BasicData): BasicData {
+        val locations = gpsRepository.getByTimestamp(locationOptions.date)
+        if(abs(locations.timestamp - locationOptions.date) < 120000) {
+            val accuracy = 10.0.pow(locationOptions.accuracy).toInt()
             val blCorner = Location(floorToDecimal(locations.longitude, accuracy), floorToDecimal(locations.latitude, accuracy))
             val trCorner = Location(ceilToDecimal(locations.longitude, accuracy), ceilToDecimal(locations.latitude, accuracy))
             val midpoint = haversineMidpoint(blCorner, trCorner)
             val location = Location(midpoint.lat, midpoint.long)
-            this.basicData!!.raw.add(location)
+            basicData.raw.add(location)
         }
-        this.basicData!!.n++
+        basicData.n++
+        return basicData
     }
 
     /**
      * Start internal aggregation of activity
      */
-    private fun aggregatePresence() {
-        val start = DateTime(this.presenceOptions!!.start).millis
-        val end = DateTime(this.presenceOptions!!.end).millis
+    private fun aggregatePresence(presenceOptions: PresenceOptions, basicData: BasicData): BasicData {
+        val start = DateTime(presenceOptions.start).millis
+        val end = DateTime(presenceOptions.end).millis
         val locations = gpsRepository.getByTimestamps(start, end)
-        Log.d(TAG, "Looking for lat: ${this.presenceOptions!!.lat}, long: ${this.presenceOptions!!.long}")
+        Log.d(TAG, "Looking for lat: ${presenceOptions.lat}, long: ${presenceOptions.long}")
+        Log.d(TAG, locations.toString())
         for (location in locations) {
             Log.d(TAG, "Saved location with lat: ${location.latitude}, long: ${location.longitude}")
-            val distance = haversineKm(this.presenceOptions!!.lat, this.presenceOptions!!.long, location.latitude.toDouble(), location.longitude.toDouble())
-            if (distance <= presenceOptions!!.radius) {
+            val distance = haversineKm(presenceOptions.lat, presenceOptions.long, location.latitude.toDouble(), location.longitude.toDouble())
+            if (distance <= presenceOptions.radius) {
                 Log.d(TAG, "Distance was $distance")
-                this.basicData!!.addRaw(1)
-                this.basicData!!.n++
-                return
+                basicData.addRaw(1)
+                basicData.n++
+                return basicData
             }
         }
-        this.basicData!!.addRaw(0)
-        this.basicData!!.n++
+        basicData.addRaw(0)
+        basicData.n++
+        return basicData
     }
 
     private fun floorToDecimal(number: Float, accuracy: Int): Float {
@@ -223,171 +241,38 @@ class CommunicationReceiver: BroadcastReceiver() {
         return ceil(number * accuracy) / accuracy
     }
 
-    private fun prepareForNextParticipant() {
-        val from = this.requestOptions.from
-        this.requestOptions.from = this.requestOptions.group[0].id
-        this.requestOptions.group.removeAt(0)
+    /**
+     * formula from https://www.movable-type.co.uk/scripts/latlong.html
+     */
+    private fun haversineKm(lat1: Double, long1: Double, lat2: Double, long2: Double): Double {
+        val d2r = 0.0174532925199433
+        val long = (long2 - long1) * d2r
+        val lat = (lat2 - lat1) * d2r
+        val a1 = sin(lat / 2.0) *sin(lat / 2.0)
+        val a2 = cos(lat1 * d2r) *cos(lat2 * d2r)
+        val a3 = sin(long / 2.0) *sin(long / 2.0)
+        val a = a1 + a2 * a3
+        val c = 2 *atan2(sqrt(a),sqrt(1 - a))
+        return 6367 * c
+    }
 
-        if (this.requestOptions.group.size == 0) {
-            Log.d(TAG, "Last in group, send results to server")
-            sendToServer(from)
-            return
-        }
-
-        val key = generateSecretKey()
-        val ivParameterSpec = generateIV()
-
-        val dataToEncrypt = gson.toJson(basicData, BasicData::class.java)
-        val encryptedData = encrypt(key, ivParameterSpec.iv, dataToEncrypt.toByteArray())
-
-        forwardToNextParticipant(
-            encryptKey(key.encoded, requestOptions.group[0].publicKey)!!,
-            Base64.encodeToString(ivParameterSpec.iv, Base64.NO_WRAP),
-            encryptedData,
-            from
+    /**
+     * formula from https://stackoverflow.com/questions/4656802/midpoint-between-two-latitude-and-longitude
+     */
+    private fun haversineMidpoint(blCorner: Location, trCorner: Location): Location {
+        val dLon = toRadians(trCorner.long.toDouble() - blCorner.long.toDouble())
+        //convert to radians
+        val lat1 = toRadians(blCorner.lat.toDouble())
+        val lat2 = toRadians(trCorner.lat.toDouble())
+        val lon1 = toRadians(blCorner.long.toDouble())
+        val bx = cos(lat2) * cos(dLon)
+        val by = cos(lat2) * sin(dLon)
+        val lat3 = atan2(
+            sin(lat1) + sin(lat2),
+            sqrt((cos(lat1) + bx) * (cos(lat1) + bx) + by * by)
         )
-    }
-
-    /**
-     * Forward newData to the next participant in the group
-     * @param m containing next target and group ids
-     */
-    private fun forwardToNextParticipant(key: String, iv: String, encrypted: String, from: String) {
-
-        val res = Response.Listener<JSONObject> {
-            Log.d(TAG, "Sent to next participant")
-            sendConfirmation(from)
-        }
-
-        val err = Response.ErrorListener {
-            Log.e(TAG, "Failed to send next participant")
-        }
-
-        val d = when(this.requestHeader.type) {
-            "steps" -> Data(key, iv, this.requestHeader, this.requestOptions, this.stepsOptions, encrypted)
-            "walk" -> Data(key, iv, this.requestHeader, this.requestOptions, this.walkOptions, encrypted)
-            "location" -> Data(key, iv, this.requestHeader, this.requestOptions, this.locationOptions, encrypted)
-            "presence" -> Data(key, iv, this.requestHeader, this.requestOptions, this.presenceOptions, encrypted)
-            else -> throw Exception("error")
-        }
-        val m = PushyMessage(this.requestOptions.group[0].id, 120, d)
-
-        val message = JSONObject(gson.toJson(m, PushyMessage::class.java))
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
-        jsonRequest.setShouldCache(false)
-        queue.add(jsonRequest)
-
-        //Start waiting for confirmation
-        this.job = GlobalScope.launch {
-            delay(150000)
-            prepareForNextParticipant()
-        }
-    }
-
-    private fun sendToServer(from: String) {
-        val res = Response.Listener<JSONObject> {
-            Log.d(TAG, "Send result successfully")
-            sendConfirmation(from)
-        }
-
-        val err = Response.ErrorListener {
-            Log.e(TAG, "Couldn't send result")
-        }
-
-        val m = when(this.requestHeader.type) {
-            "steps" ->  ServerMessage(
-                sharedPref.getString(PASSWORD, "")!!,
-                this.requestHeader,
-                this.requestOptions,
-                this.stepsOptions!!,
-                this.basicData!!
-            )
-            "walk" ->  ServerMessage(
-                sharedPref.getString(PASSWORD, "")!!,
-                this.requestHeader,
-                this.requestOptions,
-                this.walkOptions!!,
-                this.basicData!!
-            )
-            "location" ->  ServerMessage(
-                sharedPref.getString(PASSWORD, "")!!,
-                this.requestHeader,
-                this.requestOptions,
-                this.locationOptions!!,
-                this.basicData!!
-            )
-            "presence" ->  ServerMessage(
-                sharedPref.getString(PASSWORD, "")!!,
-                this.requestHeader,
-                this.requestOptions,
-                this.presenceOptions!!,
-                this.basicData!!
-            )
-            else -> throw Exception("test")
-        }
-        val message = JSONObject(gson.toJson(m, ServerMessage::class.java))
-        Log.e(TAG, message.toString(2))
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, testURI + "aggregation${requestHeader.type}", message, res, err)
-        jsonRequest.setShouldCache(false)
-        queue.add(jsonRequest)
-    }
-
-    private fun sendConfirmation(to: String) {
-        if(to.isNullOrEmpty()) {
-            Log.d(TAG, "first target for aggregation")
-            return
-        }
-
-        val res = Response.Listener<JSONObject> {
-            Log.d(TAG, "Send confirmation successfully")
-        }
-
-        val err = Response.ErrorListener {
-            Log.e(TAG, "Couldn't send confirmation")
-        }
-
-        val confirmationData = JSONObject()
-        confirmationData.put("confirmation", "true")
-        val message = JSONObject()
-        message.put("to", to)
-        message.put("time_to_live", 120)
-        message.put("data", confirmationData)
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
-        jsonRequest.setShouldCache(false)
-        queue.add(jsonRequest)
-    }
-
-    /**
-     * Generate a random 256 bit AES symmetric key
-     */
-    private fun generateSecretKey(): SecretKey {
-        val keyGenerator = KeyGenerator.getInstance("AES")
-        keyGenerator.init(256)
-        return keyGenerator.generateKey()
-    }
-
-    /**
-     * Generate a random 16 Byte Initialization Vector
-     */
-    private fun generateIV(): IvParameterSpec {
-        val ivRandom = SecureRandom()
-        val iv = ByteArray(16)
-        ivRandom.nextBytes(iv)
-        return IvParameterSpec(iv)
-    }
-
-    /**
-     * Encrypt a String using AES and returns Base64 String
-     * @param key used to encrypt
-     * @param iv used for encryption
-     * @param decrypted String to encrypt
-     */
-    private fun encrypt(key: SecretKey, iv: ByteArray, decrypted: ByteArray): String {
-        val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding")
-        val ivSpec = IvParameterSpec(iv)
-        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec)
-        val result = cipher.doFinal(decrypted)
-        return Base64.encodeToString(result, Base64.NO_WRAP)
+        val long3: Double = lon1 + atan2(by, cos(lat1) + bx)
+        return Location(toDegrees(lat3).toFloat(), toDegrees(long3).toFloat())
     }
 
     /**
@@ -402,21 +287,6 @@ class CommunicationReceiver: BroadcastReceiver() {
         cipher.init(Cipher.DECRYPT_MODE, key, ivSpec)
         cipher.doFinal(encrypted).toString()
         return String(cipher.doFinal(encrypted))
-    }
-
-    /**
-     * Encrypt the AES symmetric key using the provided RSA public key
-     * @param key to encrypt
-     * @param publicKeyString used to encrypt the key
-     */
-    private fun encryptKey(key: ByteArray, publicKeyString: String): String? {
-        val decodedPublicKey = Base64.decode(publicKeyString, Base64.NO_WRAP)
-        val x509KeySpec = X509EncodedKeySpec(decodedPublicKey)
-        val keyFact = KeyFactory.getInstance("RSA")
-        val publicKey = keyFact.generatePublic(x509KeySpec)
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        return Base64.encodeToString(cipher.doFinal(key), Base64.NO_WRAP)
     }
 
     /**
@@ -439,53 +309,5 @@ class CommunicationReceiver: BroadcastReceiver() {
         val keySpec = PKCS8EncodedKeySpec(privateBytes)
         val keyFact = KeyFactory.getInstance("RSA")
         return  keyFact.generatePrivate(keySpec)
-    }
-
-    private fun flushVariables() {
-        this.basicData = null
-        this.presenceOptions = null
-        this.stepsOptions = null
-        this.walkOptions = null
-    }
-
-    /**
-     * formula from https://www.movable-type.co.uk/scripts/latlong.html
-     */
-    private fun haversineKm(lat1: Double, long1: Double, lat2: Double, long2: Double): Double {
-        val d2r = 0.0174532925199433
-        val long = (long2 - long1) * d2r
-        val lat = (lat2 - lat1) * d2r
-
-        val a1 = sin(lat / 2.0) *sin(lat / 2.0)
-        val a2 = cos(lat1 * d2r) *cos(lat2 * d2r)
-        val a3 = sin(long / 2.0) *sin(long / 2.0)
-        val a = a1 + a2 * a3
-        val c = 2 *atan2(sqrt(a),sqrt(1 - a))
-
-        return 6367 * c
-    }
-
-
-    /**
-     * formula from https://stackoverflow.com/questions/4656802/midpoint-between-two-latitude-and-longitude
-     */
-    private fun haversineMidpoint(blCorner: Location, trCorner: Location): Location {
-
-        val dLon = toRadians(trCorner.long.toDouble() - blCorner.long.toDouble())
-
-        //convert to radians
-        val lat1 = toRadians(blCorner.lat.toDouble())
-        val lat2 = toRadians(trCorner.lat.toDouble())
-        val lon1 = toRadians(blCorner.long.toDouble())
-
-        val Bx = cos(lat2) * cos(dLon)
-        val By = cos(lat2) * sin(dLon)
-        val lat3 = atan2(
-            sin(lat1) + sin(lat2),
-            sqrt((cos(lat1) + Bx) * (cos(lat1) + Bx) + By * By)
-        )
-        val long3: Double = lon1 + atan2(By, cos(lat1) + Bx)
-
-        return Location(toDegrees(lat3).toFloat(), toDegrees(long3).toFloat())
     }
 }

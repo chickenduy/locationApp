@@ -1,4 +1,4 @@
-package com.chickenduy.locationApp.backgroundServices.communicationService.model.options
+package com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options
 
 class WalkOptions(
     val start: Long,
