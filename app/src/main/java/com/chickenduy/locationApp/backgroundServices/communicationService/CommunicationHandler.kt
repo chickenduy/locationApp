@@ -162,7 +162,7 @@ class CommunicationHandler<T>(
             else -> throw Exception("test")
         }
         val message = JSONObject(gson.toJson(m, ServerMessage::class.java))
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, testURI + "aggregation${requestHeader.type}", message, res, err)
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "aggregation${requestHeader.type}", message, res, err)
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
     }

@@ -38,7 +38,7 @@ class ActivitiesRepository (
     }
 
     @WorkerThread
-    fun getLatestEntered(): Activities {
+    suspend fun getLatestEntered(): Activities {
         return activitiesDao.getLatestEntered()
     }
 
