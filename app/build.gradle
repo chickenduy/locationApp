@@ -18,17 +18,8 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         //multiDexEnabled true
     }
-    signingConfigs {
-        release {
-            storeFile file("release.keystore")
-            storePassword 'LeAnh2000!'
-            keyAlias 'locationApp'
-            keyPassword 'LeAnh2000!'
-        }
-    }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

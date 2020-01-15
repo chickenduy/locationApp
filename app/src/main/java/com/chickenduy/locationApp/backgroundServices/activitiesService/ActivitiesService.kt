@@ -13,14 +13,14 @@ import com.google.android.gms.location.*
  * This class registers tracking of activities
  */
 class ActivitiesService(context: Context) {
-    private val logTAG = "ACTIVITIESSERVICE"
+    private val TAG = "ACTIVITIESSERVICE"
 
     private lateinit var mPendingIntent: PendingIntent
     private lateinit var activitiesProvider: ActivityRecognitionClient
     private val transitions = ArrayList<ActivityTransition>()
 
     init {
-        Log.d(logTAG, "Starting ActivitiesService")
+        Log.d(TAG, "Starting ActivitiesService")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
@@ -115,7 +115,7 @@ class ActivitiesService(context: Context) {
         //val task = activitiesProvider.requestActivityUpdates(1000L, mPendingIntent)
 
         task.addOnFailureListener { e: Exception ->
-            Log.e(logTAG, e.message!!)
+            Log.e(TAG, e.message!!)
         }
     }
 }

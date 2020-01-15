@@ -15,6 +15,6 @@ data class GPS(
     @ColumnInfo(name = "lat")
     val lat: Double,
 
-    @ColumnInfo(name = "long")
-    val long: Double
+    @ColumnInfo(name = "lon")
+    val lon: Double
 )

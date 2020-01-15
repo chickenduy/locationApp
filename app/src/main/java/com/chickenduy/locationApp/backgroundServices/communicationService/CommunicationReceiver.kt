@@ -82,9 +82,8 @@ class CommunicationReceiver : BroadcastReceiver() {
 
         val requestHeaderString = intent.getStringExtra(REQUESTHEADER)
         val requestOptionsString = intent.getStringExtra(REQUESTOPTIONS)
-        Log.d(TAG, requestOptionsString)
         val requestDataString = intent.getStringExtra(REQUESTDATA)
-        Log.d(TAG, requestDataString)
+        Log.e(TAG, requestDataString)
         val decryptedDataString: String?
         if (requestHeaderString.isNullOrEmpty() || requestOptionsString.isNullOrEmpty() || requestDataString.isNullOrEmpty()) {
             Log.e(TAG, "Got wrong request format")
@@ -172,7 +171,7 @@ class CommunicationReceiver : BroadcastReceiver() {
         val endDate = date.plusDays(1).withTimeAtStartOfDay().millis
         val locations = gpsRepository.getByTimestamps(startDate, endDate)
         locations.forEach {
-            if(inRange(it.lat, it.long, stepsOptions.lat, stepsOptions.long, stepsOptions.radius)) {
+            if(inRange(it.lat, it.lon, stepsOptions.lat, stepsOptions.lon, stepsOptions.radius)) {
                 var steps = 0
                 val stepsArray = stepsRepository.getByTimestamp(startDate, endDate)
                 stepsArray.forEach {
@@ -195,7 +194,7 @@ class CommunicationReceiver : BroadcastReceiver() {
         val endDate = DateTime(walkOptions.end).millis
         val locations = gpsRepository.getByTimestamps(startDate, endDate)
         locations.forEach {
-            if(inRange(it.lat, it.long, walkOptions.lat, walkOptions.long, walkOptions.radius)) {
+            if(inRange(it.lat, it.lon, walkOptions.lat, walkOptions.lon, walkOptions.radius)) {
                 return basicData
             }
         }
@@ -208,19 +207,20 @@ class CommunicationReceiver : BroadcastReceiver() {
         basicData: BasicData
     ): BasicData {
         val location = gpsRepository.getByTimestamp(locationOptions.date)
-        if(inRange(location.lat, location.long, locationOptions.lat, locationOptions.long, locationOptions.radius)) {
+        if(inRange(location.lat, location.lon, locationOptions.lat, locationOptions.lon, locationOptions.radius)) {
             if (abs(location.timestamp - locationOptions.date) < 10*60*1000) {
                 val accuracy = 10.0.pow(locationOptions.accuracy).toInt()
                 val blCorner = Location(
                     floorToDecimal(location.lat, accuracy),
-                    floorToDecimal(location.long, accuracy)
+                    floorToDecimal(location.lon, accuracy)
                 )
                 val trCorner = Location(
                     ceilToDecimal(location.lat, accuracy),
-                    ceilToDecimal(location.long, accuracy)
+                    ceilToDecimal(location.lon, accuracy)
                 )
+                Log.d(TAG, "bl: (${blCorner.lat},${blCorner.lon}), tr: (${trCorner.lat},${trCorner.lon}) ")
                 val midpoint = haversineMidpoint(blCorner, trCorner)
-                val midPointLocation = Location(midpoint.lat, midpoint.long)
+                val midPointLocation = Location(midpoint.lat, midpoint.lon)
                 basicData.raw.add(midPointLocation)
             }
             basicData.n++
@@ -240,10 +240,10 @@ class CommunicationReceiver : BroadcastReceiver() {
         val start = DateTime(presenceOptions.start).millis
         val end = DateTime(presenceOptions.end).millis
         val locations = gpsRepository.getByTimestamps(start, end)
-        Log.d(TAG, "Looking for lat: ${presenceOptions.lat}, long: ${presenceOptions.long}")
+        Log.d(TAG, "Looking for lat: ${presenceOptions.lat}, lon: ${presenceOptions.lon}")
         locations.forEach {
-            Log.d(TAG, "Saved location with lat: ${it.lat}, long: ${it.long}")
-            if(inRange(it.lat, it.long, presenceOptions.lat, presenceOptions.long, presenceOptions.radius)) {
+            Log.d(TAG, "Saved location with lat: ${it.lat}, lon: ${it.lon}")
+            if(inRange(it.lat, it.lon, presenceOptions.lat, presenceOptions.lon, presenceOptions.radius)) {
                 basicData.addRaw(1)
                 basicData.n++
                 return basicData
@@ -270,11 +270,11 @@ class CommunicationReceiver : BroadcastReceiver() {
      */
     private fun haversineKm(lat1: Double, long1: Double, lat2: Double, long2: Double): Double {
         val d2r = 0.0174532925199433
-        val long = (long2 - long1) * d2r
+        val lon = (long2 - long1) * d2r
         val lat = (lat2 - lat1) * d2r
         val a1 = sin(lat / 2.0) * sin(lat / 2.0)
         val a2 = cos(lat1 * d2r) * cos(lat2 * d2r)
-        val a3 = sin(long / 2.0) * sin(long / 2.0)
+        val a3 = sin(lon / 2.0) * sin(lon / 2.0)
         val a = a1 + a2 * a3
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return 6367 * c
@@ -284,11 +284,11 @@ class CommunicationReceiver : BroadcastReceiver() {
      * formula from https://stackoverflow.com/questions/4656802/midpoint-between-two-latitude-and-longitude
      */
     private fun haversineMidpoint(blCorner: Location, trCorner: Location): Location {
-        val dLon = toRadians(trCorner.long - blCorner.long)
+        val dLon = toRadians(trCorner.lon - blCorner.lon)
         //convert to radians
         val lat1 = toRadians(blCorner.lat)
         val lat2 = toRadians(trCorner.lat)
-        val lon1 = toRadians(blCorner.long)
+        val lon1 = toRadians(blCorner.lon)
         val bx = cos(lat2) * cos(dLon)
         val by = cos(lat2) * sin(dLon)
         val lat3 = atan2(

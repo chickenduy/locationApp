@@ -24,7 +24,7 @@ class GPSListAdapter internal constructor(context: Context) :
     override fun onBindViewHolder(holder: GPSViewHolder, position: Int) {
         val current = gpsList[position]
         holder.itemDate.text = "${Date(current.timestamp)}"
-        holder.itemDescription.text = "lat: ${current.latitude}\nlon: ${current.longitude}"
+        holder.itemDescription.text = "lat: ${current.lat}\nlon: ${current.lon}"
     }
 
     internal fun setList(gpsList: List<GPS>) {

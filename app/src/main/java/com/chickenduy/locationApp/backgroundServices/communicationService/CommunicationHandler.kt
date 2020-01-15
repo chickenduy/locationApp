@@ -34,7 +34,6 @@ class CommunicationHandler<T>(
     private val requestData: T,
     private val basicData: BasicData
 ) {
-
     private val TAG = "COMHANDLER"
     private val PASSWORD = "password"
 
@@ -106,7 +105,7 @@ class CommunicationHandler<T>(
                 iv,
                 this.requestHeader,
                 this.requestOptions,
-                this.requestOptions,
+                this.requestData,
                 encrypted
             )
             "walk" -> PushyData(
@@ -114,7 +113,7 @@ class CommunicationHandler<T>(
                 iv,
                 this.requestHeader,
                 this.requestOptions,
-                this.requestOptions,
+                this.requestData,
                 encrypted
             )
             "location" -> PushyData(
@@ -122,7 +121,7 @@ class CommunicationHandler<T>(
                 iv,
                 this.requestHeader,
                 this.requestOptions,
-                this.requestOptions,
+                this.requestData,
                 encrypted
             )
             "presence" -> PushyData(
@@ -130,7 +129,7 @@ class CommunicationHandler<T>(
                 iv,
                 this.requestHeader,
                 this.requestOptions,
-                this.requestOptions,
+                this.requestData,
                 encrypted
             )
             else -> throw Exception("error")
@@ -153,6 +152,7 @@ class CommunicationHandler<T>(
     private fun sendToServer(from: String) {
         val res = Response.Listener<JSONObject> {
             Log.d(TAG, "Send result successfully")
+            Log.d(TAG, it.toString(2))
             sendConfirmation(from)
         }
 

@@ -12,7 +12,7 @@ import com.chickenduy.locationApp.data.repository.StepsRepository
  * This class activates the step sensor
  */
 class StepsService(context: Context) {
-    private val logTAG = "STEPSSERVICE"
+    private val TAG = "STEPSSERVICE"
     private var sensorManager: SensorManager
     private var stepsRepository: StepsRepository
     private val stepsLogger = StepsLogger()
@@ -22,7 +22,7 @@ class StepsService(context: Context) {
      * sensor is available
      */
     init {
-        Log.d(logTAG, "Starting StepsService")
+        Log.d(TAG, "Starting StepsService")
         sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val stepsSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         stepsRepository = StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
@@ -38,7 +38,7 @@ class StepsService(context: Context) {
                 SensorManager.SENSOR_DELAY_NORMAL
             )
         } else {
-            Log.e(logTAG, "Missing StepSensor")
+            Log.e(TAG, "Missing StepSensor")
         }
     }
 }

@@ -3,7 +3,7 @@ package com.chickenduy.locationApp.backgroundServices.communicationService.model
 class StepsOptions(
     val date: Long,
     val lat: Double,
-    val long: Double,
+    val lon: Double,
     val radius: Double
 ) {
 

@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  */
 class BackgroundService : Service() {
 
-    private val logTAG = "BACKGROUNDSERVICE"
+    private val TAG = "BACKGROUNDSERVICE"
 
     private var serviceLooper: Looper? = null
     private var serviceHandler: ServiceHandler? = null
@@ -44,9 +44,8 @@ class BackgroundService : Service() {
         }
     }
 
-
     override fun onCreate() {
-        Log.d(logTAG, "Starting BackgroundService")
+        Log.d(TAG, "Starting BackgroundService")
 
         GlobalScope.launch {
             setUpApp()
@@ -58,11 +57,15 @@ class BackgroundService : Service() {
             serviceLooper = looper
             serviceHandler = ServiceHandler(looper)
         }
-
+        (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag").apply {
+                acquire()
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d(logTAG, "Starting Command")
+        Log.d(TAG, "Starting Command")
         super.onStartCommand(intent, flags, startId)
 
         serviceHandler?.obtainMessage()?.also { msg ->
@@ -116,7 +119,7 @@ class BackgroundService : Service() {
         return NotificationCompat.Builder(context, channelId)
             .setContentTitle("Ongoing Tracking")
             .setContentText("Please don't force quit the app")
-            .setSmallIcon(R.drawable.ic_launcher_background)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
             .setTicker("Test")
             .setOngoing(true)
@@ -153,7 +156,7 @@ class BackgroundService : Service() {
             Toast.LENGTH_SHORT
         ).show()
         Log.e(
-            logTAG,
+            TAG,
             "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
         )
 
@@ -191,7 +194,7 @@ class BackgroundService : Service() {
             Toast.LENGTH_SHORT
         ).show()
         Log.e(
-            logTAG,
+            TAG,
             "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
         )
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))

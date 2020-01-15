@@ -2,5 +2,5 @@ package com.chickenduy.locationApp.backgroundServices.communicationService.model
 
 class Location(
     val lat: Double,
-    val long: Double
+    val lon: Double
 )

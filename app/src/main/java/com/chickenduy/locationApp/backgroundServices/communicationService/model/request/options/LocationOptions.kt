@@ -5,7 +5,7 @@ class LocationOptions(
     val accuracy: Int,
     val anonymity: Int,
     val lat: Double,
-    val long: Double,
+    val lon: Double,
     val radius: Double
 ) {
 

@@ -15,7 +15,7 @@ import java.util.*
  * This class saves the step data to a database
  */
 class StepsLogger : SensorEventListener {
-    private val logTAG = "STEPSLOGGER"
+    private val TAG = "STEPSLOGGER"
     private var lastTimeStamp = Date().time
     private val stepsRepository: StepsRepository =
         StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
@@ -37,7 +37,7 @@ class StepsLogger : SensorEventListener {
                     )
                 )
             }
-            Log.d(logTAG, "Logged steps")
+            Log.d(TAG, "Logged steps")
         }
     }
 

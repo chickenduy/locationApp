@@ -21,7 +21,7 @@ import java.util.*
  * This class saves activities data to a database
  */
 class ActivitiesLogger : BroadcastReceiver() {
-    private val logTAG = "ACTIVITIESLOGGER"
+    private val TAG = "ACTIVITIESLOGGER"
     private val activitiesRepository: ActivitiesRepository =
         ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
     private val activitiesDetailedRepository: ActivitiesDetailedRepository =
@@ -29,10 +29,10 @@ class ActivitiesLogger : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (ActivityTransitionResult.hasResult(intent)) {
-            Log.d(logTAG, "Received Activities broadcast")
+            Log.d(TAG, "Received Activities broadcast")
             val result = ActivityTransitionResult.extractResult(intent)
             val detectedActivities = result?.transitionEvents as List<ActivityTransitionEvent>
-            Log.d(logTAG, detectedActivities.toString())
+            Log.d(TAG, detectedActivities.toString())
 
             // Get entered activity
             val activities = detectedActivities
@@ -51,7 +51,7 @@ class ActivitiesLogger : BroadcastReceiver() {
                 )
                 runBlocking {
                     activitiesRepository.insert(activity)
-                    Log.d(logTAG, "Saved activities")
+                    Log.d(TAG, "Saved activities")
                 }
                 if (it.transitionType == 0) {
                     runBlocking {
@@ -63,8 +63,8 @@ class ActivitiesLogger : BroadcastReceiver() {
                             activity.type
                         )
                         activitiesDetailedRepository.insert(activityDetailed)
-                        Log.d(logTAG, "Saved activitiesDetailed")
-                        Log.d(logTAG, activityDetailed.toString())
+                        Log.d(TAG, "Saved activitiesDetailed")
+                        Log.d(TAG, activityDetailed.toString())
                     }
                 }
             }
@@ -79,7 +79,7 @@ class ActivitiesLogger : BroadcastReceiver() {
             changeInterval(context, detectedActivity.type)
         }*/
         else
-            Log.e(logTAG, "something is missing")
+            Log.e(TAG, "something is missing")
     }
 
     /**
@@ -95,27 +95,27 @@ class ActivitiesLogger : BroadcastReceiver() {
 
         when (activity) {
             DetectedActivity.STILL -> {
-                Log.d(logTAG, "change to still")
+                Log.d(TAG, "change to still")
                 i.putExtra("activity", 0)
             }
             DetectedActivity.WALKING -> {
-                Log.d(logTAG, "change to walking")
+                Log.d(TAG, "change to walking")
                 i.putExtra("activity", 1)
             }
             DetectedActivity.RUNNING -> {
-                Log.d(logTAG, "change to running")
+                Log.d(TAG, "change to running")
                 i.putExtra("activity", 2)
             }
             DetectedActivity.ON_BICYCLE -> {
-                Log.d(logTAG, "change to bicycle")
+                Log.d(TAG, "change to bicycle")
                 i.putExtra("activity", 3)
             }
             DetectedActivity.IN_VEHICLE -> {
-                Log.d(logTAG, "change to vehicle")
+                Log.d(TAG, "change to vehicle")
                 i.putExtra("activity", 4)
             }
             else -> {
-                Log.d(logTAG, "change to else")
+                Log.d(TAG, "change to else")
                 i.putExtra("activity", 0)
             }
         }
