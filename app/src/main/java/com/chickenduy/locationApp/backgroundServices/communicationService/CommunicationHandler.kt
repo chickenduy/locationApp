@@ -9,7 +9,9 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.BasicData
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.message.*
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.message.PushyData
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.message.PushyMessage
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.message.ServerMessage
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestHeader
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestOptions
 import com.google.gson.Gson
@@ -98,11 +100,39 @@ class CommunicationHandler<T>(
             Log.e(TAG, "Failed to send next participant")
         }
 
-        val d = when(this.requestHeader.type) {
-            "steps" -> PushyData(key, iv, this.requestHeader, this.requestOptions, this.requestOptions, encrypted)
-            "walk" -> PushyData(key, iv, this.requestHeader, this.requestOptions, this.requestOptions, encrypted)
-            "location" -> PushyData(key, iv, this.requestHeader, this.requestOptions, this.requestOptions, encrypted)
-            "presence" -> PushyData(key, iv, this.requestHeader, this.requestOptions, this.requestOptions, encrypted)
+        val d = when (this.requestHeader.type) {
+            "steps" -> PushyData(
+                key,
+                iv,
+                this.requestHeader,
+                this.requestOptions,
+                this.requestOptions,
+                encrypted
+            )
+            "walk" -> PushyData(
+                key,
+                iv,
+                this.requestHeader,
+                this.requestOptions,
+                this.requestOptions,
+                encrypted
+            )
+            "location" -> PushyData(
+                key,
+                iv,
+                this.requestHeader,
+                this.requestOptions,
+                this.requestOptions,
+                encrypted
+            )
+            "presence" -> PushyData(
+                key,
+                iv,
+                this.requestHeader,
+                this.requestOptions,
+                this.requestOptions,
+                encrypted
+            )
             else -> throw Exception("error")
         }
         val m = PushyMessage(this.requestOptions.group[0].id, 120, d)
@@ -130,45 +160,52 @@ class CommunicationHandler<T>(
             Log.e(TAG, "Couldn't send result")
         }
 
-        val m = when(this.requestHeader.type) {
-            "steps" ->  ServerMessage(
+        val m = when (this.requestHeader.type) {
+            "steps" -> ServerMessage(
                 sharedPref.getString(PASSWORD, "")!!,
                 this.requestHeader,
                 this.requestOptions,
-                this.requestData!!,
+                this.requestData,
                 this.basicData
             )
-            "walk" ->  ServerMessage(
+            "walk" -> ServerMessage(
                 sharedPref.getString(PASSWORD, "")!!,
                 this.requestHeader,
                 this.requestOptions,
-                this.requestData!!,
+                this.requestData,
                 this.basicData
             )
-            "location" ->  ServerMessage(
+            "location" -> ServerMessage(
                 sharedPref.getString(PASSWORD, "")!!,
                 this.requestHeader,
                 this.requestOptions,
-                this.requestData!!,
+                this.requestData,
                 this.basicData
             )
-            "presence" ->  ServerMessage(
+            "presence" -> ServerMessage(
                 sharedPref.getString(PASSWORD, "")!!,
                 this.requestHeader,
                 this.requestOptions,
-                this.requestData!!,
+                this.requestData,
                 this.basicData
             )
             else -> throw Exception("test")
         }
         val message = JSONObject(gson.toJson(m, ServerMessage::class.java))
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "aggregation${requestHeader.type}", message, res, err)
+        Log.d(TAG, message.toString(2))
+        val jsonRequest = JsonObjectRequest(
+            Request.Method.POST,
+            serverURI + "aggregation${requestHeader.type}",
+            message,
+            res,
+            err
+        )
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
     }
 
     private fun sendConfirmation(to: String) {
-        if(to.isEmpty()) {
+        if (to.isEmpty()) {
             Log.d(TAG, "first target for aggregation")
             return
         }
@@ -224,8 +261,6 @@ class CommunicationHandler<T>(
         val result = cipher.doFinal(decrypted)
         return Base64.encodeToString(result, Base64.NO_WRAP)
     }
-
-
 
     /**
      * Encrypt the AES symmetric key using the provided RSA public key

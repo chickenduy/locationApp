@@ -20,15 +20,16 @@ import java.util.*
 /**
  * This class saves activities data to a database
  */
-class ActivitiesLogger: BroadcastReceiver() {
+class ActivitiesLogger : BroadcastReceiver() {
     private val logTAG = "ACTIVITIESLOGGER"
-    private val activitiesRepository: ActivitiesRepository = ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
-    private val activitiesDetailedRepository: ActivitiesDetailedRepository = ActivitiesDetailedRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDetailedDao())
+    private val activitiesRepository: ActivitiesRepository =
+        ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
+    private val activitiesDetailedRepository: ActivitiesDetailedRepository =
+        ActivitiesDetailedRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDetailedDao())
 
     override fun onReceive(context: Context, intent: Intent) {
-        if(ActivityTransitionResult.hasResult(intent))
-        {
-            Log.d(logTAG,"Received Activities broadcast")
+        if (ActivityTransitionResult.hasResult(intent)) {
+            Log.d(logTAG, "Received Activities broadcast")
             val result = ActivityTransitionResult.extractResult(intent)
             val detectedActivities = result?.transitionEvents as List<ActivityTransitionEvent>
             Log.d(logTAG, detectedActivities.toString())
@@ -40,7 +41,7 @@ class ActivitiesLogger: BroadcastReceiver() {
                 ?.activityType
             changeInterval(context, activities)
 
-            detectedActivities.forEach{
+            detectedActivities.forEach {
                 val now = Date().time
                 val activity = Activities(
                     0L,
@@ -78,7 +79,7 @@ class ActivitiesLogger: BroadcastReceiver() {
             changeInterval(context, detectedActivity.type)
         }*/
         else
-            Log.e(logTAG,"something is missing")
+            Log.e(logTAG, "something is missing")
     }
 
     /**

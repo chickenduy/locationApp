@@ -10,7 +10,8 @@ import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.data.database.entity.GPS
 import java.util.*
 
-class GPSListAdapter internal constructor(context: Context) : RecyclerView.Adapter<GPSListAdapter.GPSViewHolder>()  {
+class GPSListAdapter internal constructor(context: Context) :
+    RecyclerView.Adapter<GPSListAdapter.GPSViewHolder>() {
 
     private val inflater: LayoutInflater = LayoutInflater.from(context)
     private var gpsList = emptyList<GPS>() // Cached copy of words

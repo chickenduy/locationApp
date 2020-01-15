@@ -8,18 +8,17 @@ import android.util.Log
 import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.BasicData
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.entity.Location
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestHeader
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestOptions
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.LocationOptions
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.PresenceOptions
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.StepsOptions
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.WalkOptions
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestHeader
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestOptions
 import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.chickenduy.locationApp.data.repository.GPSRepository
 import com.chickenduy.locationApp.data.repository.StepsRepository
 import com.google.gson.Gson
-import kotlinx.coroutines.Job
 import org.joda.time.DateTime
 import java.lang.Math.toDegrees
 import java.lang.Math.toRadians
@@ -35,20 +34,24 @@ import kotlin.math.*
 /**
  * This class manages incoming requests and forwarding to next device or to server
  */
-class CommunicationReceiver: BroadcastReceiver() {
+class CommunicationReceiver : BroadcastReceiver() {
 
     private val TAG = "COMRECEIVER"
     private val PASSWORD = "password"
     private val REQUESTHEADER = "requestHeader"
     private val REQUESTOPTIONS = "requestOptions"
     private val REQUESTDATA = "requestData"
+    private val DATA = "data"
 
     private val ctx = MyApp.instance
     private val sharedPref = ctx.getSharedPreferences("options", Context.MODE_PRIVATE)
 
-    private val activitiesRepository: ActivitiesRepository = ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
-    private val gpsRepository: GPSRepository = GPSRepository(TrackingDatabase.getDatabase(MyApp.instance).gPSDao())
-    private val stepsRepository: StepsRepository = StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
+    private val activitiesRepository: ActivitiesRepository =
+        ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
+    private val gpsRepository: GPSRepository =
+        GPSRepository(TrackingDatabase.getDatabase(MyApp.instance).gPSDao())
+    private val stepsRepository: StepsRepository =
+        StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
 
     private val gson = Gson()
 
@@ -68,19 +71,8 @@ class CommunicationReceiver: BroadcastReceiver() {
         // Receive Confirmation and cancel timeout
         val confirmation = intent.getStringExtra("confirmation")
         if (!confirmation.isNullOrEmpty()) {
-            Log.d(TAG, "cancel timeout")
-            if(communicationHandlerSteps != null) {
-                communicationHandlerSteps!!.cancel()
-            }
-            if(communicationHandlerWalk != null) {
-                communicationHandlerWalk!!.cancel()
-            }
-            if(communicationHandlerLocation != null) {
-                communicationHandlerLocation!!.cancel()
-            }
-            if(communicationHandlerPresence != null) {
-                communicationHandlerPresence!!.cancel()
-            }
+            Log.d(TAG, "cancel jobs")
+            cancelJobs()
             return
         }
 
@@ -90,27 +82,29 @@ class CommunicationReceiver: BroadcastReceiver() {
 
         val requestHeaderString = intent.getStringExtra(REQUESTHEADER)
         val requestOptionsString = intent.getStringExtra(REQUESTOPTIONS)
+        Log.d(TAG, requestOptionsString)
         val requestDataString = intent.getStringExtra(REQUESTDATA)
+        Log.d(TAG, requestDataString)
         val decryptedDataString: String?
-        if(requestHeaderString.isNullOrEmpty() || requestOptionsString.isNullOrEmpty() || requestDataString.isNullOrEmpty()) {
+        if (requestHeaderString.isNullOrEmpty() || requestOptionsString.isNullOrEmpty() || requestDataString.isNullOrEmpty()) {
             Log.e(TAG, "Got wrong request format")
             return
         }
 
-        decryptedDataString = if (encryptionKey != null && iv  != null) {
-            val data = intent.getStringExtra("data")
+        decryptedDataString = if (encryptionKey != null && iv != null) {
+            val data = intent.getStringExtra(DATA)
             val key = decryptKey(encryptionKey)
             val ivSpec = Base64.decode(iv, Base64.NO_WRAP)
             val dataBytes = Base64.decode(data, Base64.NO_WRAP)
             decrypt(key, ivSpec, dataBytes)
         } else {
-            intent.getStringExtra("data")
+            intent.getStringExtra(DATA)
         }
 
         val requestHeader = gson.fromJson(requestHeaderString, RequestHeader::class.java)
         val requestOptions = gson.fromJson(requestOptionsString, RequestOptions::class.java)
 
-        when(requestHeader.type) {
+        when (requestHeader.type) {
             "steps" -> {
                 val stepsOptions = gson.fromJson(requestDataString, StepsOptions::class.java)
                 var basicData = gson.fromJson(decryptedDataString, BasicData::class.java)
@@ -176,13 +170,20 @@ class CommunicationReceiver: BroadcastReceiver() {
         val date = DateTime(stepsOptions.date)
         val startDate = date.withTimeAtStartOfDay().millis
         val endDate = date.plusDays(1).withTimeAtStartOfDay().millis
-        var steps = 0
-        val stepsArray = stepsRepository.getByTimestamp(startDate, endDate)
-        stepsArray.forEach {
-            steps += it.steps
+        val locations = gpsRepository.getByTimestamps(startDate, endDate)
+        locations.forEach {
+            if(inRange(it.lat, it.long, stepsOptions.lat, stepsOptions.long, stepsOptions.radius)) {
+                var steps = 0
+                val stepsArray = stepsRepository.getByTimestamp(startDate, endDate)
+                stepsArray.forEach {
+                    steps += it.steps
+                }
+                basicData.raw.add(steps)
+                basicData.n++
+                return basicData
+            }
         }
-        basicData.raw.add(steps)
-        basicData.n++
+        Log.d(TAG, "not in desired area")
         return basicData
     }
 
@@ -192,53 +193,76 @@ class CommunicationReceiver: BroadcastReceiver() {
     private fun aggregateWalk(walkOptions: WalkOptions, basicData: BasicData): BasicData {
         val startDate = DateTime(walkOptions.start).millis
         val endDate = DateTime(walkOptions.end).millis
+        val locations = gpsRepository.getByTimestamps(startDate, endDate)
+        locations.forEach {
+            if(inRange(it.lat, it.long, walkOptions.lat, walkOptions.long, walkOptions.radius)) {
+                return basicData
+            }
+        }
+
         return basicData
     }
 
-    private fun aggregateLocation(locationOptions: LocationOptions, basicData: BasicData): BasicData {
-        val locations = gpsRepository.getByTimestamp(locationOptions.date)
-        if(abs(locations.timestamp - locationOptions.date) < 120000) {
-            val accuracy = 10.0.pow(locationOptions.accuracy).toInt()
-            val blCorner = Location(floorToDecimal(locations.longitude, accuracy), floorToDecimal(locations.latitude, accuracy))
-            val trCorner = Location(ceilToDecimal(locations.longitude, accuracy), ceilToDecimal(locations.latitude, accuracy))
-            val midpoint = haversineMidpoint(blCorner, trCorner)
-            val location = Location(midpoint.lat, midpoint.long)
-            basicData.raw.add(location)
+    private fun aggregateLocation(
+        locationOptions: LocationOptions,
+        basicData: BasicData
+    ): BasicData {
+        val location = gpsRepository.getByTimestamp(locationOptions.date)
+        if(inRange(location.lat, location.long, locationOptions.lat, locationOptions.long, locationOptions.radius)) {
+            if (abs(location.timestamp - locationOptions.date) < 10*60*1000) {
+                val accuracy = 10.0.pow(locationOptions.accuracy).toInt()
+                val blCorner = Location(
+                    floorToDecimal(location.lat, accuracy),
+                    floorToDecimal(location.long, accuracy)
+                )
+                val trCorner = Location(
+                    ceilToDecimal(location.lat, accuracy),
+                    ceilToDecimal(location.long, accuracy)
+                )
+                val midpoint = haversineMidpoint(blCorner, trCorner)
+                val midPointLocation = Location(midpoint.lat, midpoint.long)
+                basicData.raw.add(midPointLocation)
+            }
+            basicData.n++
+            return basicData
         }
-        basicData.n++
+        Log.d(TAG, "not in desired area")
         return basicData
     }
 
     /**
      * Start internal aggregation of activity
      */
-    private fun aggregatePresence(presenceOptions: PresenceOptions, basicData: BasicData): BasicData {
+    private fun aggregatePresence(
+        presenceOptions: PresenceOptions,
+        basicData: BasicData
+    ): BasicData {
         val start = DateTime(presenceOptions.start).millis
         val end = DateTime(presenceOptions.end).millis
         val locations = gpsRepository.getByTimestamps(start, end)
         Log.d(TAG, "Looking for lat: ${presenceOptions.lat}, long: ${presenceOptions.long}")
-        Log.d(TAG, locations.toString())
-        for (location in locations) {
-            Log.d(TAG, "Saved location with lat: ${location.latitude}, long: ${location.longitude}")
-            val distance = haversineKm(presenceOptions.lat, presenceOptions.long, location.latitude.toDouble(), location.longitude.toDouble())
-            if (distance <= presenceOptions.radius) {
-                Log.d(TAG, "Distance was $distance")
+        locations.forEach {
+            Log.d(TAG, "Saved location with lat: ${it.lat}, long: ${it.long}")
+            if(inRange(it.lat, it.long, presenceOptions.lat, presenceOptions.long, presenceOptions.radius)) {
                 basicData.addRaw(1)
                 basicData.n++
                 return basicData
             }
         }
-        basicData.addRaw(0)
-        basicData.n++
+        Log.d(TAG, "not in desired area")
         return basicData
     }
 
-    private fun floorToDecimal(number: Float, accuracy: Int): Float {
+    private fun floorToDecimal(number: Double, accuracy: Int): Double {
         return floor(number * accuracy) / accuracy
     }
 
-    private fun ceilToDecimal(number: Float, accuracy: Int): Float {
+    private fun ceilToDecimal(number: Double, accuracy: Int): Double {
         return ceil(number * accuracy) / accuracy
+    }
+
+    private fun inRange(lat1: Double, long1: Double, lat2: Double, long2: Double, range: Double): Boolean {
+        return haversineKm(lat1, long1, lat2, long2) <= range
     }
 
     /**
@@ -248,11 +272,11 @@ class CommunicationReceiver: BroadcastReceiver() {
         val d2r = 0.0174532925199433
         val long = (long2 - long1) * d2r
         val lat = (lat2 - lat1) * d2r
-        val a1 = sin(lat / 2.0) *sin(lat / 2.0)
-        val a2 = cos(lat1 * d2r) *cos(lat2 * d2r)
-        val a3 = sin(long / 2.0) *sin(long / 2.0)
+        val a1 = sin(lat / 2.0) * sin(lat / 2.0)
+        val a2 = cos(lat1 * d2r) * cos(lat2 * d2r)
+        val a3 = sin(long / 2.0) * sin(long / 2.0)
         val a = a1 + a2 * a3
-        val c = 2 *atan2(sqrt(a),sqrt(1 - a))
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return 6367 * c
     }
 
@@ -260,11 +284,11 @@ class CommunicationReceiver: BroadcastReceiver() {
      * formula from https://stackoverflow.com/questions/4656802/midpoint-between-two-latitude-and-longitude
      */
     private fun haversineMidpoint(blCorner: Location, trCorner: Location): Location {
-        val dLon = toRadians(trCorner.long.toDouble() - blCorner.long.toDouble())
+        val dLon = toRadians(trCorner.long - blCorner.long)
         //convert to radians
-        val lat1 = toRadians(blCorner.lat.toDouble())
-        val lat2 = toRadians(trCorner.lat.toDouble())
-        val lon1 = toRadians(blCorner.long.toDouble())
+        val lat1 = toRadians(blCorner.lat)
+        val lat2 = toRadians(trCorner.lat)
+        val lon1 = toRadians(blCorner.long)
         val bx = cos(lat2) * cos(dLon)
         val by = cos(lat2) * sin(dLon)
         val lat3 = atan2(
@@ -272,7 +296,7 @@ class CommunicationReceiver: BroadcastReceiver() {
             sqrt((cos(lat1) + bx) * (cos(lat1) + bx) + by * by)
         )
         val long3: Double = lon1 + atan2(by, cos(lat1) + bx)
-        return Location(toDegrees(lat3).toFloat(), toDegrees(long3).toFloat())
+        return Location(toDegrees(lat3), toDegrees(long3))
     }
 
     /**
@@ -308,6 +332,25 @@ class CommunicationReceiver: BroadcastReceiver() {
         val privateBytes = Base64.decode(sharedPref.getString("privateKey", "")!!, Base64.NO_WRAP)
         val keySpec = PKCS8EncodedKeySpec(privateBytes)
         val keyFact = KeyFactory.getInstance("RSA")
-        return  keyFact.generatePrivate(keySpec)
+        return keyFact.generatePrivate(keySpec)
+    }
+
+    private fun cancelJobs() {
+        if (communicationHandlerSteps != null) {
+            communicationHandlerSteps!!.cancel()
+            communicationHandlerSteps = null
+        }
+        if (communicationHandlerWalk != null) {
+            communicationHandlerWalk!!.cancel()
+            communicationHandlerWalk = null
+        }
+        if (communicationHandlerLocation != null) {
+            communicationHandlerLocation!!.cancel()
+            communicationHandlerLocation = null
+        }
+        if (communicationHandlerPresence != null) {
+            communicationHandlerPresence!!.cancel()
+            communicationHandlerPresence = null
+        }
     }
 }

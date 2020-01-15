@@ -6,13 +6,14 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Base64
 import android.util.Log
-import androidx.annotation.RestrictTo
 import androidx.core.content.ContextCompat
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import kotlinx.coroutines.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import me.pushy.sdk.Pushy
 import org.json.JSONObject
 import java.security.KeyPairGenerator
@@ -41,7 +42,8 @@ class CommunicationService(private val context: Context) {
             runBlocking {
                 registerDevice()
                 Pushy.listen(context)
-                Pushy.subscribe("online", context)            }
+                Pushy.subscribe("online", context)
+            }
         }
         // App is started for a second time
         else {
@@ -63,7 +65,11 @@ class CommunicationService(private val context: Context) {
         }
         // Just additional information for dev, that Pushy token is not saved because writing permission is not present
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 Log.e(TAG, "You will loose token upon uninstall.")
             }
         }
@@ -79,10 +85,11 @@ class CommunicationService(private val context: Context) {
             Log.d(TAG, response.toString())
         }
 
-        val err = Response.ErrorListener { response ->
-            Log.e(TAG, response.toString())
+        val err = Response.ErrorListener {
+            Log.e(TAG, it.toString())
             sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
             registerDevice()
+            Log.e(TAG, "Failed to update")
         }
 
         val token = Pushy.getDeviceCredentials(context).token
@@ -91,7 +98,8 @@ class CommunicationService(private val context: Context) {
         pingRequest.put("id", token)
         pingRequest.put(PASSWORD, sharedPref.getString(PASSWORD, ""))
 
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "crowd/ping", pingRequest, res, err)
+        val jsonRequest =
+            JsonObjectRequest(Request.Method.POST, serverURI + "crowd/ping", pingRequest, res, err)
         Log.d(TAG, pingRequest.toString(2))
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
@@ -115,22 +123,29 @@ class CommunicationService(private val context: Context) {
         val err = Response.ErrorListener {
             Log.e(TAG, it.message.toString())
             sharedPref.edit().putBoolean(ISREGISTERED, false).apply()
+            Log.e(TAG, "Failed to register")
         }
 
-        val token = if (!Pushy.isRegistered(context)) Pushy.register(context) else Pushy.getDeviceCredentials(context).token
+        val token =
+            if (!Pushy.isRegistered(context)) Pushy.register(context) else Pushy.getDeviceCredentials(
+                context
+            ).token
         var publicKey = sharedPref.getString(PUBLICKEY, "")
 
         /**
          * Create RSA Keypair for encryption
          */
-        if(!sharedPref.contains(PUBLICKEY) || publicKey == "") {
+        if (!sharedPref.contains(PUBLICKEY) || publicKey == "") {
             val keyGen = KeyPairGenerator.getInstance("RSA")
             keyGen.initialize(2048)
             val keyPair = keyGen.genKeyPair()
             publicKey = Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP)
             with(sharedPref.edit()) {
                 putString(PUBLICKEY, publicKey)
-                putString(PRIVATEKEY, Base64.encodeToString(keyPair.private.encoded, Base64.NO_WRAP))
+                putString(
+                    PRIVATEKEY,
+                    Base64.encodeToString(keyPair.private.encoded, Base64.NO_WRAP)
+                )
                 apply()
             }
         }
@@ -139,7 +154,8 @@ class CommunicationService(private val context: Context) {
         request.put("id", token)
         request.put(PUBLICKEY, publicKey)
 
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, serverURI + "crowd", request, res, err)
+        val jsonRequest =
+            JsonObjectRequest(Request.Method.POST, serverURI + "crowd", request, res, err)
         Log.d(TAG, request.toString())
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)

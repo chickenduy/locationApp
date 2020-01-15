@@ -10,5 +10,4 @@ class PushyData(
     val requestOptions: RequestOptions,
     val requestData: Any?,
     val data: String
-) {
-}
+)

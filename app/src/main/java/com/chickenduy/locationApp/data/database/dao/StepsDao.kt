@@ -5,9 +5,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy.ABORT
 import androidx.room.Query
-import com.chickenduy.locationApp.data.database.entity.GPS
 import com.chickenduy.locationApp.data.database.entity.Steps
-import java.util.*
 
 @Dao
 interface StepsDao {

@@ -6,7 +6,8 @@ class RequestOptions(
     val groupNumber: Int,
     val numberOfGroups: Int,
     var from: String,
-    var group: ArrayList<Crowd>) {
+    var group: ArrayList<Crowd>
+) {
 
     override fun toString(): String {
         return "{\nfrom: ${from},\ngroup: ${group}\n}"

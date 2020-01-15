@@ -8,9 +8,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.chickenduy.locationApp.R
 
-class ActivitiesView : AppCompatActivity(){
+class ActivitiesView : AppCompatActivity() {
 
-//    private lateinit var activitiesViewModel: ActivitiesViewModel
+    //    private lateinit var activitiesViewModel: ActivitiesViewModel
     private lateinit var activitiesDetailedViewModel: ActivitiesViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {

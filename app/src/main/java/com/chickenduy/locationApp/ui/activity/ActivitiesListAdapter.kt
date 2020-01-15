@@ -7,15 +7,15 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.chickenduy.locationApp.R
-import com.chickenduy.locationApp.data.database.entity.Activities
 import com.chickenduy.locationApp.data.database.entity.ActivitiesDetailed
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ActivitiesListAdapter internal constructor(context: Context) : RecyclerView.Adapter<ActivitiesListAdapter.ActivityViewHolder>()  {
+class ActivitiesListAdapter internal constructor(context: Context) :
+    RecyclerView.Adapter<ActivitiesListAdapter.ActivityViewHolder>() {
 
     private val inflater: LayoutInflater = LayoutInflater.from(context)
-//    private var activitiesList = emptyList<Activities>() // Cached copy of words
+    //    private var activitiesList = emptyList<Activities>() // Cached copy of words
     private var activitiesDetailedList = emptyList<ActivitiesDetailed>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ActivityViewHolder {
@@ -45,9 +45,10 @@ class ActivitiesListAdapter internal constructor(context: Context) : RecyclerVie
     override fun onBindViewHolder(holder: ActivityViewHolder, position: Int) {
         val current = activitiesDetailedList[position]
         val format = SimpleDateFormat("dd/MM/yyyy, HH:mm:ss")
-        holder.itemDate.text = "${format.format(Date(current.start))} - ${format.format(Date(current.end))}"
+        holder.itemDate.text =
+            "${format.format(Date(current.start))} - ${format.format(Date(current.end))}"
         holder.itemDescription.text = "activity: ${
-        when(current.type) {
+        when (current.type) {
             0 -> "vehicle"
             1 -> "on bicycle"
             2 -> "on foot"

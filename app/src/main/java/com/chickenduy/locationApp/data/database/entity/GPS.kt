@@ -5,16 +5,16 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "gps_table")
-data class GPS (
+data class GPS(
     @PrimaryKey(autoGenerate = true)
     val id: Long,
 
     @ColumnInfo(name = "timestamp")
     val timestamp: Long,
 
-    @ColumnInfo(name = "longitude")
-    val longitude: Float,
+    @ColumnInfo(name = "lat")
+    val lat: Double,
 
-    @ColumnInfo(name = "latitude")
-    val latitude: Float
-    )
+    @ColumnInfo(name = "long")
+    val long: Double
+)

@@ -3,11 +3,9 @@ package com.chickenduy.locationApp.data.repository
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import com.chickenduy.locationApp.data.database.dao.StepsDao
-import com.chickenduy.locationApp.data.database.entity.GPS
 import com.chickenduy.locationApp.data.database.entity.Steps
-import java.util.*
 
-class StepsRepository (
+class StepsRepository(
     private val stepsDao: StepsDao
 ) {
     val allsteps: LiveData<List<Steps>> = getAll()

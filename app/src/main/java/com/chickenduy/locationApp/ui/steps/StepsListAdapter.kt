@@ -10,7 +10,8 @@ import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.data.database.entity.Steps
 import java.util.*
 
-class StepsListAdapter internal constructor(context: Context) : RecyclerView.Adapter<StepsListAdapter.StepsViewHolder>()  {
+class StepsListAdapter internal constructor(context: Context) :
+    RecyclerView.Adapter<StepsListAdapter.StepsViewHolder>() {
 
     private val inflater: LayoutInflater = LayoutInflater.from(context)
     private var stepsList = emptyList<Steps>() // Cached copy of words

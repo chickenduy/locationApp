@@ -12,7 +12,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.backgroundServices.BackgroundService
-import com.chickenduy.locationApp.backgroundServices.MyExceptionHandler
 import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
 import com.chickenduy.locationApp.ui.steps.StepsView
@@ -24,7 +23,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 ACCESS_FINE_LOCATION_REQUEST_CODE
@@ -49,7 +52,8 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
-        grantResults: IntArray) {
+        grantResults: IntArray
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             ACCESS_FINE_LOCATION_REQUEST_CODE -> if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -67,10 +71,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun startBackgroundService() {
         val intent = Intent(this, BackgroundService::class.java)
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
-        }
-        else {
+        } else {
             startService(intent)
         }
         //bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
@@ -89,6 +92,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun crashMe(view: View) {
-        
+
     }
 }

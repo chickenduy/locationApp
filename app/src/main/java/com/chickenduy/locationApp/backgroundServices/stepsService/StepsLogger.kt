@@ -14,10 +14,11 @@ import java.util.*
 /**
  * This class saves the step data to a database
  */
-class StepsLogger: SensorEventListener {
+class StepsLogger : SensorEventListener {
     private val logTAG = "STEPSLOGGER"
     private var lastTimeStamp = Date().time
-    private val stepsRepository: StepsRepository = StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
+    private val stepsRepository: StepsRepository =
+        StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
 
     /**
      * Triggered each time the sensor reports new data
@@ -25,7 +26,7 @@ class StepsLogger: SensorEventListener {
     override fun onSensorChanged(event: SensorEvent) {
         val now = Date().time
         // We only save steps data at a 60 seconds interval
-            if (now - lastTimeStamp > 1000 * 10) {
+        if (now - lastTimeStamp > 1000 * 10) {
             lastTimeStamp = now
             runBlocking {
                 stepsRepository.insert(

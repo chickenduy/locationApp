@@ -14,19 +14,21 @@ import kotlinx.coroutines.runBlocking
 /**
  * This class saves GPS data to a database
  */
-class GPSLogger: BroadcastReceiver() {
+class GPSLogger : BroadcastReceiver() {
     private val logTAG = "GPSLOGGER"
-    private val gpsRepository: GPSRepository = GPSRepository(TrackingDatabase.getDatabase(MyApp.instance).gPSDao())
+    private val gpsRepository: GPSRepository =
+        GPSRepository(TrackingDatabase.getDatabase(MyApp.instance).gPSDao())
 
     override fun onReceive(p0: Context?, intent: Intent?) {
         if (LocationResult.hasResult(intent)) {
             Log.d(logTAG, "Received GPS Broadcast")
             val result = LocationResult.extractResult(intent)
-            result.locations.forEach{
-                val gps = GPS(0,
+            result.locations.forEach {
+                val gps = GPS(
+                    0,
                     it.time,
-                    it.longitude.toFloat(),
-                    it.latitude.toFloat()
+                    it.latitude,
+                    it.longitude
                 )
                 runBlocking {
                     gpsRepository.insert(gps)

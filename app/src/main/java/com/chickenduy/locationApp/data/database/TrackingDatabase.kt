@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.chickenduy.locationApp.data.database.dao.ActivitiesDao
 import com.chickenduy.locationApp.data.database.dao.ActivitiesDetailedDao
 import com.chickenduy.locationApp.data.database.dao.GPSDao
@@ -13,15 +12,15 @@ import com.chickenduy.locationApp.data.database.entity.Activities
 import com.chickenduy.locationApp.data.database.entity.ActivitiesDetailed
 import com.chickenduy.locationApp.data.database.entity.GPS
 import com.chickenduy.locationApp.data.database.entity.Steps
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
-@Database(entities = [
-    GPS::class,
-    Activities::class,
-    ActivitiesDetailed::class,
-    Steps::class
-], version = 1)
+@Database(
+    entities = [
+        GPS::class,
+        Activities::class,
+        ActivitiesDetailed::class,
+        Steps::class
+    ], version = 1
+)
 abstract class TrackingDatabase : RoomDatabase() {
 
     abstract fun gPSDao(): GPSDao

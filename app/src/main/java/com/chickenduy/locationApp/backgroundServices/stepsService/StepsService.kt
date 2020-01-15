@@ -11,7 +11,7 @@ import com.chickenduy.locationApp.data.repository.StepsRepository
 /**
  * This class activates the step sensor
  */
-class StepsService (context: Context) {
+class StepsService(context: Context) {
     private val logTAG = "STEPSSERVICE"
     private var sensorManager: SensorManager
     private var stepsRepository: StepsRepository

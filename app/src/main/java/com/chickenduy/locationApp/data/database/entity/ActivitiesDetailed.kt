@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "activitiesDetailed_table")
-data class ActivitiesDetailed (
+data class ActivitiesDetailed(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long,

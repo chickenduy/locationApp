@@ -3,12 +3,10 @@ package com.chickenduy.locationApp.backgroundServices.communicationService.model
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestHeader
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestOptions
 
-class ServerMessage(
+class ServerMessage<T>(
     val password: String,
     val requestHeader: RequestHeader,
     val requestOptions: RequestOptions,
-    val requestData: Any,
+    val requestData: T,
     val data: Any
-    ) {
-
-}
+)

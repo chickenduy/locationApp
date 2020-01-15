@@ -2,7 +2,8 @@ package com.chickenduy.locationApp.backgroundServices.communicationService.model
 
 class BasicData(
     var n: Int,
-    val raw: ArrayList<Any>) {
+    val raw: ArrayList<Any>
+) {
 
     fun addRaw(value: Any) {
         raw.add(value)

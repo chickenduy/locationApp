@@ -5,7 +5,7 @@ import androidx.lifecycle.LiveData
 import com.chickenduy.locationApp.data.database.dao.GPSDao
 import com.chickenduy.locationApp.data.database.entity.GPS
 
-class GPSRepository (
+class GPSRepository(
     private val gpsDao: GPSDao
 ) {
     val allGPS: LiveData<List<GPS>> = getAll()

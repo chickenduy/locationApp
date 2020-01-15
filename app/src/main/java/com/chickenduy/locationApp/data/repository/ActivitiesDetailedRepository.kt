@@ -5,7 +5,7 @@ import androidx.lifecycle.LiveData
 import com.chickenduy.locationApp.data.database.dao.ActivitiesDetailedDao
 import com.chickenduy.locationApp.data.database.entity.ActivitiesDetailed
 
-class ActivitiesDetailedRepository (
+class ActivitiesDetailedRepository(
     private val activitiesDetailedDao: ActivitiesDetailedDao
 ) {
     val allActivities: LiveData<List<ActivitiesDetailed>> = activitiesDetailedDao.getAll()
@@ -17,7 +17,7 @@ class ActivitiesDetailedRepository (
 
     @WorkerThread
     suspend fun insert(activitiesDetailed: List<ActivitiesDetailed>) {
-        activitiesDetailed.forEach{
+        activitiesDetailed.forEach {
             insert(it)
         }
     }

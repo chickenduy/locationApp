@@ -44,20 +44,20 @@ class GPSService(private val context: Context) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            val interval = when(activity){
-                0 -> SECONDS*60*10 //still
-                1 -> SECONDS*30 //walking
-                2 -> SECONDS*15 //running
-                3 -> SECONDS*5 //biking
+            val interval = when (activity) {
+                0 -> SECONDS * 60 * 10 //still
+                1 -> SECONDS * 30 //walking
+                2 -> SECONDS * 15 //running
+                3 -> SECONDS * 5 //biking
                 4 -> SECONDS //vehicle
                 else -> SECONDS
             }
 
-            Log.d(TAG, "change interval speed for ${interval/SECONDS}s")
+            Log.d(TAG, "change interval speed for ${interval / SECONDS}s")
             val request = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(interval)
-                .setMaxWaitTime(SECONDS*60)
+                .setMaxWaitTime(SECONDS * 60)
 
             locationProvider.flushLocations()
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)
@@ -65,8 +65,7 @@ class GPSService(private val context: Context) {
             task.addOnFailureListener { e: Exception ->
                 Log.e(TAG, "${e.message}")
             }
-        }
-        else
+        } else
             Log.e("LOCATION_UPDATES", "We have no location permission")
     }
 

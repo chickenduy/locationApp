@@ -4,5 +4,4 @@ class PushyMessage(
     val to: String,
     val time_to_live: Int,
     val data: PushyData
-) {
-}
+)

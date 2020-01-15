@@ -82,8 +82,7 @@ class BackgroundService : Service() {
         if (!this::notification.isInitialized) {
             notification = buildNotification(this)
             startForeground(1337, notification)
-        }
-        else {
+        } else {
             startForeground(1337, notification)
         }
 
@@ -159,17 +158,18 @@ class BackgroundService : Service() {
         )
 
         val intent = Intent(this, BootUpReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(this, 1, intent, 0);
+        val pendingIntent = PendingIntent.getBroadcast(this, 1, intent, 0)
 
         if (pendingIntent == null) {
-            Toast.makeText(this, "Some problems with creating of PendingIntent", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Some problems with creating of PendingIntent", Toast.LENGTH_LONG)
+                .show()
         } else {
             if (serviceStarterAlarmManager == null) {
                 serviceStarterAlarmManager = (getSystemService(ALARM_SERVICE) as AlarmManager)
                 serviceStarterAlarmManager!!.setRepeating(
                     AlarmManager.ELAPSED_REALTIME,
-                    SystemClock.elapsedRealtime() + 5*1000,
-                    1*1000,
+                    SystemClock.elapsedRealtime() + 5 * 1000,
+                    1 * 1000,
                     pendingIntent
                 )
             }

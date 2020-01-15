@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "activities_table")
-data class Activities (
+data class Activities(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long,
@@ -33,4 +33,4 @@ data class Activities (
      */
     @ColumnInfo(name = "type")
     val type: Int
-    )
+)
