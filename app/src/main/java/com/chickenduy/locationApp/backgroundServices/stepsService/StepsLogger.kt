@@ -8,7 +8,9 @@ import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.database.entity.Steps
 import com.chickenduy.locationApp.data.repository.StepsRepository
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.*
 
 /**
@@ -24,11 +26,11 @@ class StepsLogger : SensorEventListener {
      * Triggered each time the sensor reports new data
      */
     override fun onSensorChanged(event: SensorEvent) {
-        val now = Date().time
-        // We only save steps data at a 60 seconds interval
-        if (now - lastTimeStamp > 1000 * 10) {
-            lastTimeStamp = now
-            runBlocking {
+        Thread(Runnable {
+            val now = Date().time
+            // We only save steps data at a 60 seconds interval
+            if (now - lastTimeStamp > 1000 * 10) {
+                lastTimeStamp = now
                 stepsRepository.insert(
                     Steps(
                         0,
@@ -36,9 +38,9 @@ class StepsLogger : SensorEventListener {
                         event.values[0].toInt()
                     )
                 )
+                Log.d(TAG, "Logged steps")
             }
-            Log.d(TAG, "Logged steps")
-        }
+        }).start()
     }
 
     /**

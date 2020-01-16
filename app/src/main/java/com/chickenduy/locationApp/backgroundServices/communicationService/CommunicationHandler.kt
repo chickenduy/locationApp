@@ -15,10 +15,7 @@ import com.chickenduy.locationApp.backgroundServices.communicationService.model.
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestHeader
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.RequestOptions
 import com.google.gson.Gson
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.security.KeyFactory
 import java.security.SecureRandom
@@ -45,7 +42,7 @@ class CommunicationHandler<T>(
     private val pushyURI = "https://api.pushy.me/push?api_key=cfd5f664afd97266ed8ec89ac697b9dcded0afced39635320fc5bfb7a950c705"
     private val queue = Volley.newRequestQueue(this.ctx)
 
-    private lateinit var job: Job
+    private lateinit var job: Thread
     private val gson = Gson()
 
     fun send() {
@@ -53,7 +50,7 @@ class CommunicationHandler<T>(
     }
 
     fun cancel() {
-        job.cancel()
+        job.interrupt()
     }
 
     private fun prepareForNextParticipant() {
@@ -138,15 +135,28 @@ class CommunicationHandler<T>(
 
         val message = JSONObject(gson.toJson(m, PushyMessage::class.java))
         Log.e(TAG, message.toString(2))
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
+        val jsonRequest = JsonObjectRequest(
+            Request.Method.POST,
+            pushyURI,
+            message,
+            res,
+            err
+        )
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
 
         //Start waiting for confirmation
-        this.job = GlobalScope.launch {
-            delay(150000)
-            prepareForNextParticipant()
-        }
+        this.job = Thread(Runnable {
+            try {
+                Thread.sleep(3*60*1000)
+                prepareForNextParticipant()
+            }
+            catch (e: InterruptedException) {
+                Log.d(TAG, "Cancelled skip participant")
+            }
+        })
+        this.job.start()
+
     }
 
     private fun sendToServer(from: String) {
@@ -224,7 +234,13 @@ class CommunicationHandler<T>(
         message.put("to", to)
         message.put("time_to_live", 120)
         message.put("data", confirmationData)
-        val jsonRequest = JsonObjectRequest(Request.Method.POST, pushyURI, message, res, err)
+        val jsonRequest = JsonObjectRequest(
+            Request.Method.POST,
+            pushyURI,
+            message,
+            res,
+            err
+        )
         jsonRequest.setShouldCache(false)
         queue.add(jsonRequest)
     }

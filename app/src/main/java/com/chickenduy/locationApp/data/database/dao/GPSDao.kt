@@ -10,13 +10,13 @@ import com.chickenduy.locationApp.data.database.entity.GPS
 @Dao
 interface GPSDao {
     @Insert(onConflict = ABORT)
-    suspend fun insert(gps: GPS): Long
+    fun insert(gps: GPS): Long
 
     @Insert(onConflict = ABORT)
-    suspend fun insert(gps: List<GPS>)
+    fun insert(gps: List<GPS>)
 
     @Query("SELECT * FROM gps_table WHERE id = :id LIMIT 1")
-    suspend fun getById(id: Long): GPS
+    fun getById(id: Long): GPS
 
     @Query("SELECT * FROM gps_table WHERE timestamp > :start AND timestamp < :end ORDER BY timestamp DESC")
     fun getByTimestamps(start: Long, end: Long): List<GPS>
@@ -31,5 +31,5 @@ interface GPSDao {
     fun getAll(): LiveData<List<GPS>>
 
     @Query("DELETE FROM gps_table")
-    suspend fun deleteAll()
+    fun deleteAll()
 }

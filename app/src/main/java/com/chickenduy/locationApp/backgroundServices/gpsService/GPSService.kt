@@ -44,8 +44,9 @@ class GPSService(private val context: Context) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
+            // TODO: Change for test period
             val interval = when (activity) {
-                0 -> SECONDS * 60 * 10 //still
+                0 -> SECONDS * 60 //still
                 1 -> SECONDS * 30 //walking
                 2 -> SECONDS * 15 //running
                 3 -> SECONDS * 5 //biking
@@ -57,7 +58,8 @@ class GPSService(private val context: Context) {
             val request = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(interval)
-                .setMaxWaitTime(SECONDS * 60)
+                .setFastestInterval(interval/2)
+                .setMaxWaitTime(interval*10)
 
             locationProvider.flushLocations()
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)

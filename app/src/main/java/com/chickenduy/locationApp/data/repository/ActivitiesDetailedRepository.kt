@@ -11,24 +11,24 @@ class ActivitiesDetailedRepository(
     val allActivities: LiveData<List<ActivitiesDetailed>> = activitiesDetailedDao.getAll()
 
     @WorkerThread
-    suspend fun insert(activitiesDetailed: ActivitiesDetailed): Long {
+    fun insert(activitiesDetailed: ActivitiesDetailed): Long {
         return activitiesDetailedDao.insert(activitiesDetailed)
     }
 
     @WorkerThread
-    suspend fun insert(activitiesDetailed: List<ActivitiesDetailed>) {
+    fun insert(activitiesDetailed: List<ActivitiesDetailed>) {
         activitiesDetailed.forEach {
             insert(it)
         }
     }
 
     @WorkerThread
-    suspend fun getByID(id: Long): ActivitiesDetailed {
+    fun getByID(id: Long): ActivitiesDetailed {
         return activitiesDetailedDao.getById(id)
     }
 
     @WorkerThread
-    suspend fun getByTimestamp(timestamp: Long): List<ActivitiesDetailed> {
+    fun getByTimestamp(timestamp: Long): List<ActivitiesDetailed> {
         return activitiesDetailedDao.getByTimestamp(timestamp)
     }
 
@@ -43,7 +43,7 @@ class ActivitiesDetailedRepository(
     }
 
     @WorkerThread
-    suspend fun deleteAll() {
+    fun deleteAll() {
         return activitiesDetailedDao.deleteAll()
     }
 }

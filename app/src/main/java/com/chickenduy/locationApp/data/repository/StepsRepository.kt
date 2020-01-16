@@ -11,19 +11,19 @@ class StepsRepository(
     val allsteps: LiveData<List<Steps>> = getAll()
 
     @WorkerThread
-    suspend fun insert(steps: Steps): Long {
+    fun insert(steps: Steps): Long {
         return stepsDao.insert(steps)
     }
 
     @WorkerThread
-    suspend fun insert(steps: List<Steps>) {
+    fun insert(steps: List<Steps>) {
         steps.forEach {
             insert(it)
         }
     }
 
     @WorkerThread
-    suspend fun getByID(id: Long): Steps {
+    fun getByID(id: Long): Steps {
         return stepsDao.getById(id)
     }
 
@@ -43,7 +43,7 @@ class StepsRepository(
     }
 
     @WorkerThread
-    suspend fun deleteAll() {
+    fun deleteAll() {
         return stepsDao.deleteAll()
     }
 

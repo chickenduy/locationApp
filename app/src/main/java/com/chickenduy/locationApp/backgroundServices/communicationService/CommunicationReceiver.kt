@@ -37,7 +37,6 @@ import kotlin.math.*
 class CommunicationReceiver : BroadcastReceiver() {
 
     private val TAG = "COMRECEIVER"
-    private val PASSWORD = "password"
     private val REQUESTHEADER = "requestHeader"
     private val REQUESTOPTIONS = "requestOptions"
     private val REQUESTDATA = "requestData"
@@ -83,7 +82,6 @@ class CommunicationReceiver : BroadcastReceiver() {
         val requestHeaderString = intent.getStringExtra(REQUESTHEADER)
         val requestOptionsString = intent.getStringExtra(REQUESTOPTIONS)
         val requestDataString = intent.getStringExtra(REQUESTDATA)
-        Log.e(TAG, requestDataString)
         val decryptedDataString: String?
         if (requestHeaderString.isNullOrEmpty() || requestOptionsString.isNullOrEmpty() || requestDataString.isNullOrEmpty()) {
             Log.e(TAG, "Got wrong request format")
@@ -177,6 +175,9 @@ class CommunicationReceiver : BroadcastReceiver() {
                 stepsArray.forEach {
                     steps += it.steps
                 }
+                if(steps == 0) {
+                    return basicData
+                }
                 basicData.raw.add(steps)
                 basicData.n++
                 return basicData
@@ -198,7 +199,6 @@ class CommunicationReceiver : BroadcastReceiver() {
                 return basicData
             }
         }
-
         return basicData
     }
 
@@ -222,7 +222,10 @@ class CommunicationReceiver : BroadcastReceiver() {
                 val midpoint = haversineMidpoint(blCorner, trCorner)
                 val midPointLocation = Location(midpoint.lat, midpoint.lon)
                 basicData.raw.add(midPointLocation)
+                basicData.n++
+                return basicData
             }
+            Log.d(TAG, "missing data")
             basicData.n++
             return basicData
         }

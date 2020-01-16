@@ -4,7 +4,8 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.os.*
+import android.os.Build
+import android.os.IBinder
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -14,8 +15,6 @@ import com.chickenduy.locationApp.backgroundServices.activitiesService.Activitie
 import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
 import com.chickenduy.locationApp.backgroundServices.stepsService.StepsService
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
 /**
  * This class handles all logic, it starts all location related services
@@ -23,9 +22,7 @@ import kotlinx.coroutines.launch
 class BackgroundService : Service() {
 
     private val TAG = "BACKGROUNDSERVICE"
-
-    private var serviceLooper: Looper? = null
-    private var serviceHandler: ServiceHandler? = null
+    private val NOTIFICATION_ID = 1337
 
     private lateinit var notification: Notification
     private lateinit var gpsService: GPSService
@@ -33,63 +30,10 @@ class BackgroundService : Service() {
     private lateinit var communicationService: CommunicationService
     private lateinit var stepsService: StepsService
 
-    private var serviceStarterAlarmManager: AlarmManager? = null
-
-    private inner class ServiceHandler(looper: Looper) : Handler(looper) {
-
-        override fun handleMessage(msg: Message) {
-            if (msg.arg2 != -1) {
-                gpsService.startTracking(msg.arg2)
-            }
-        }
-    }
-
     override fun onCreate() {
         Log.d(TAG, "Starting BackgroundService")
+        Toast.makeText(this, "Starting BackgroundService", Toast.LENGTH_SHORT).show()
 
-        GlobalScope.launch {
-            setUpApp()
-        }
-
-        HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_FOREGROUND).apply {
-            start()
-            // Get the HandlerThread's Looper and use it for our Handler
-            serviceLooper = looper
-            serviceHandler = ServiceHandler(looper)
-        }
-        (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag").apply {
-                acquire()
-            }
-        }
-    }
-
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Starting Command")
-        super.onStartCommand(intent, flags, startId)
-
-        serviceHandler?.obtainMessage()?.also { msg ->
-            msg.arg1 = startId
-            msg.arg2 = intent.getIntExtra("activity", -1)
-            serviceHandler?.sendMessage(msg)
-        }
-
-        if (!this::notification.isInitialized) {
-            notification = buildNotification(this)
-            startForeground(1337, notification)
-        }
-        return START_STICKY
-    }
-
-    private fun setUpApp() {
-        if (!this::notification.isInitialized) {
-            notification = buildNotification(this)
-            startForeground(1337, notification)
-        } else {
-            startForeground(1337, notification)
-        }
-
-        // Start GPS Tracking
         gpsService = GPSService(applicationContext)
         // Start Activities Tracking
         activitiesService = ActivitiesService(applicationContext)
@@ -97,6 +41,30 @@ class BackgroundService : Service() {
         stepsService = StepsService(applicationContext)
         // Start the Communication Service (Server, next Device)
         communicationService = CommunicationService(applicationContext)
+
+//        (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+//            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag").apply {
+//                acquire()
+//            }
+//        }
+    }
+
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        Log.d(TAG, "Starting Command")
+        super.onStartCommand(intent, flags, startId)
+
+        if (!this::notification.isInitialized) {
+            notification = buildNotification(this)
+        }
+        startForeground(NOTIFICATION_ID, notification)
+
+
+        val newInterval = intent?.extras?.getInt("activity")
+        if(newInterval != null) {
+            gpsService.startTracking(newInterval)
+        }
+
+        return START_STICKY
     }
 
     /**
@@ -114,9 +82,12 @@ class BackgroundService : Service() {
                 "my_service"
             }
 
-        val pendingIntent = PendingIntent.getActivity(context, 0, Intent(), 0)
+        val notificationIntent = Intent(applicationContext, BackgroundService::class.java)
+        notificationIntent.action = "BackgroundService" // A string containing the action name
+        notificationIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
 
-        return NotificationCompat.Builder(context, channelId)
+        val notification = NotificationCompat.Builder(context, channelId)
             .setContentTitle("Ongoing Tracking")
             .setContentText("Please don't force quit the app")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -124,6 +95,8 @@ class BackgroundService : Service() {
             .setTicker("Test")
             .setOngoing(true)
             .build()
+        notification.flags = notification.flags or Notification.FLAG_NO_CLEAR
+        return notification
     }
 
     /**
@@ -131,15 +104,15 @@ class BackgroundService : Service() {
      */
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(channelId: String, channelName: String): String {
-        val chan = NotificationChannel(
+        val channel = NotificationChannel(
             channelId,
             channelName,
             NotificationManager.IMPORTANCE_DEFAULT
         )
-        chan.lightColor = Color.BLUE
-        chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+        channel.lightColor = Color.BLUE
+        channel.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
         val service = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        service.createNotificationChannel(chan)
+        service.createNotificationChannel(channel)
         return channelId
     }
 
@@ -150,34 +123,8 @@ class BackgroundService : Service() {
      */
     override fun onDestroy() {
         super.onDestroy()
-        Toast.makeText(
-            this,
-            "Application has been closed, trying to restart BackgroundService",
-            Toast.LENGTH_SHORT
-        ).show()
-        Log.e(
-            TAG,
-            "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
-        )
-
-        val intent = Intent(this, BootUpReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(this, 1, intent, 0)
-
-        if (pendingIntent == null) {
-            Toast.makeText(this, "Some problems with creating of PendingIntent", Toast.LENGTH_LONG)
-                .show()
-        } else {
-            if (serviceStarterAlarmManager == null) {
-                serviceStarterAlarmManager = (getSystemService(ALARM_SERVICE) as AlarmManager)
-                serviceStarterAlarmManager!!.setRepeating(
-                    AlarmManager.ELAPSED_REALTIME,
-                    SystemClock.elapsedRealtime() + 5 * 1000,
-                    1 * 1000,
-                    pendingIntent
-                )
-            }
-        }
-
+        Toast.makeText(this, "Application has been closed, trying to restart BackgroundService", Toast.LENGTH_SHORT).show()
+        Log.e(TAG, "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver.")
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
     }
 
@@ -188,18 +135,10 @@ class BackgroundService : Service() {
      */
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        Toast.makeText(
-            this,
-            "Application has been closed, trying to restart BackgroundService",
-            Toast.LENGTH_SHORT
-        ).show()
-        Log.e(
-            TAG,
-            "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver."
-        )
+        Toast.makeText(this, "Application has been closed, trying to restart BackgroundService", Toast.LENGTH_SHORT).show()
+        Log.e(TAG, "Service unexpectedly destroyed while BackgroundService was running. Will send broadcast to RestartReceiver.")
         sendBroadcast(Intent(applicationContext, BootUpReceiver::class.java))
     }
-
 
     /**
      * This is required for a Service

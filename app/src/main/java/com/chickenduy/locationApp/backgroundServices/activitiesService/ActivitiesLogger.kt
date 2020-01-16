@@ -14,7 +14,10 @@ import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.google.android.gms.location.ActivityTransitionEvent
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.util.*
 
 /**
@@ -28,34 +31,31 @@ class ActivitiesLogger : BroadcastReceiver() {
         ActivitiesDetailedRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDetailedDao())
 
     override fun onReceive(context: Context, intent: Intent) {
+//        GlobalScope.launch {
+//            activitiesDetailedRepository.deleteAll()
+//            activitiesRepository.deleteAll()
+//        }
         if (ActivityTransitionResult.hasResult(intent)) {
             Log.d(TAG, "Received Activities broadcast")
             val result = ActivityTransitionResult.extractResult(intent)
             val detectedActivities = result?.transitionEvents as List<ActivityTransitionEvent>
-            Log.d(TAG, detectedActivities.toString())
-
-            // Get entered activity
-            val activities = detectedActivities
-                .filter { it.transitionType == 0 }
-                .maxBy { it.elapsedRealTimeNanos }
-                ?.activityType
-            changeInterval(context, activities)
-
-            detectedActivities.forEach {
-                val now = Date().time
-                val activity = Activities(
-                    0L,
-                    now,
-                    it.transitionType,
-                    it.activityType
-                )
-                runBlocking {
+            Log.e(TAG, detectedActivities.toString())
+            val now = Date().time
+            Thread(Runnable {
+                detectedActivities.forEach {
+                    val activity = Activities(
+                        0L,
+                        now,
+                        it.transitionType,
+                        it.activityType
+                    )
                     activitiesRepository.insert(activity)
+                    Log.d(TAG, activity.toString())
                     Log.d(TAG, "Saved activities")
-                }
-                if (it.transitionType == 0) {
-                    runBlocking {
+                    if (it.transitionType == 1) {
                         val latestActivitiesEntered = activitiesRepository.getLatestEntered()
+                        Log.d(TAG, latestActivitiesEntered.toString())
+                        Log.d(TAG, it.toString())
                         val activityDetailed = ActivitiesDetailed(
                             0L,
                             latestActivitiesEntered.timestamp,
@@ -67,17 +67,15 @@ class ActivitiesLogger : BroadcastReceiver() {
                         Log.d(TAG, activityDetailed.toString())
                     }
                 }
-            }
 
-
+                // Get entered activity
+                val activity = detectedActivities
+                    .filter { it.transitionType == 0 }
+                    .maxBy { it.elapsedRealTimeNanos }
+                    ?.activityType
+                changeInterval(context, activity)
+            }).start()
         }
-        /*if(ActivityRecognitionResult.hasResult(intent)) {
-            Log.d(TAG,"Received Activities broadcast")
-            val result = ActivityRecognitionResult.extractResult(intent)
-            val detectedActivity = result.mostProbableActivity
-            Log.d(TAG, "$detectedActivity")
-            changeInterval(context, detectedActivity.type)
-        }*/
         else
             Log.e(TAG, "something is missing")
     }
@@ -116,7 +114,7 @@ class ActivitiesLogger : BroadcastReceiver() {
             }
             else -> {
                 Log.d(TAG, "change to else")
-                i.putExtra("activity", 0)
+                i.putExtra("activity", 4)
             }
         }
         context.startService(i)

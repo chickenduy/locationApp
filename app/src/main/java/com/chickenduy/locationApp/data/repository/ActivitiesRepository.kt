@@ -11,24 +11,24 @@ class ActivitiesRepository(
     val allActivities: LiveData<List<Activities>> = activitiesDao.getAll()
 
     @WorkerThread
-    suspend fun insert(activities: Activities): Long {
+    fun insert(activities: Activities): Long {
         return activitiesDao.insert(activities)
     }
 
     @WorkerThread
-    suspend fun insert(activities: List<Activities>) {
+    fun insert(activities: List<Activities>) {
         activities.forEach {
             insert(it)
         }
     }
 
     @WorkerThread
-    suspend fun getByID(id: Long): Activities {
+    fun getByID(id: Long): Activities {
         return activitiesDao.getById(id)
     }
 
     @WorkerThread
-    suspend fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Activities> {
+    fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Activities> {
         return activitiesDao.getByTimestamp(minTimestamp, maxTimestamp)
     }
 
@@ -38,7 +38,7 @@ class ActivitiesRepository(
     }
 
     @WorkerThread
-    suspend fun getLatestEntered(): Activities {
+    fun getLatestEntered(): Activities {
         return activitiesDao.getLatestEntered()
     }
 
@@ -48,7 +48,7 @@ class ActivitiesRepository(
     }
 
     @WorkerThread
-    suspend fun deleteAll() {
+    fun deleteAll() {
         return activitiesDao.deleteAll()
     }
 }

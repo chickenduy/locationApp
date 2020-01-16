@@ -11,9 +11,9 @@ import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import me.pushy.sdk.Pushy
 import org.json.JSONObject
 import java.security.KeyPairGenerator
@@ -36,32 +36,10 @@ class CommunicationService(private val context: Context) {
     // On app start
     init {
         Log.d(TAG, "Starting ComService")
-        // Called when the app is installed for the first time
-        if (!sharedPref.contains(ISREGISTERED)) {
-            Log.d(TAG, "installing for the first time")
-            runBlocking {
-                registerDevice()
-                Pushy.listen(context)
-                Pushy.subscribe("online", context)
-            }
-        }
-        // App is started for a second time
-        else {
-            // Called when device is not registered on server
-            if (sharedPref.getBoolean(ISREGISTERED, false)) {
-                Log.d(TAG, "registering on server")
-                runBlocking {
-                    registerDevice()
-                }
-            }
-            // Update the server
-            else {
-                updateDevice()
-            }
+        CoroutineScope(Dispatchers.Default).launch {
+            updateDevice()
             Pushy.listen(context)
-            GlobalScope.launch {
-                Pushy.subscribe("online", context)
-            }
+            Pushy.subscribe("online", context)
         }
         // Just additional information for dev, that Pushy token is not saved because writing permission is not present
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -92,17 +70,21 @@ class CommunicationService(private val context: Context) {
             Log.e(TAG, "Failed to update")
         }
 
-        val token = Pushy.getDeviceCredentials(context).token
+        try {
+            val token = Pushy.getDeviceCredentials(context).token
+            val pingRequest = JSONObject()
+            pingRequest.put("id", token)
+            pingRequest.put(PASSWORD, sharedPref.getString(PASSWORD, ""))
 
-        val pingRequest = JSONObject()
-        pingRequest.put("id", token)
-        pingRequest.put(PASSWORD, sharedPref.getString(PASSWORD, ""))
-
-        val jsonRequest =
-            JsonObjectRequest(Request.Method.POST, serverURI + "crowd/ping", pingRequest, res, err)
-        Log.d(TAG, pingRequest.toString(2))
-        jsonRequest.setShouldCache(false)
-        queue.add(jsonRequest)
+            val jsonRequest =
+                JsonObjectRequest(Request.Method.POST, serverURI + "crowd/ping", pingRequest, res, err)
+            Log.d(TAG, pingRequest.toString(2))
+            jsonRequest.setShouldCache(false)
+            queue.add(jsonRequest)
+        }
+        catch (e: Exception) {
+            registerDevice()
+        }
     }
 
     /**

@@ -11,19 +11,19 @@ class GPSRepository(
     val allGPS: LiveData<List<GPS>> = getAll()
 
     @WorkerThread
-    suspend fun insert(gps: GPS): Long {
+    fun insert(gps: GPS): Long {
         return gpsDao.insert(gps)
     }
 
     @WorkerThread
-    suspend fun insert(gps: List<GPS>) {
+    fun insert(gps: List<GPS>) {
         gps.forEach {
             insert(it)
         }
     }
 
     @WorkerThread
-    suspend fun getByID(id: Long): GPS {
+    fun getByID(id: Long): GPS {
         return gpsDao.getById(id)
     }
 
@@ -48,7 +48,7 @@ class GPSRepository(
     }
 
     @WorkerThread
-    suspend fun deleteAll() {
+    fun deleteAll() {
         return gpsDao.deleteAll()
     }
 
