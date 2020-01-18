@@ -28,8 +28,8 @@ class StepsRepository(
     }
 
     @WorkerThread
-    fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<Steps> {
-        return stepsDao.getByTimestamp(minTimestamp, maxTimestamp)
+    fun getByTimestamps(minTimestamp: Long, maxTimestamp: Long): List<Steps> {
+        return stepsDao.getByTimestamps(minTimestamp, maxTimestamp)
     }
 
     @WorkerThread

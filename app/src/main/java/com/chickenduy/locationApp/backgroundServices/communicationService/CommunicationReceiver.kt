@@ -167,23 +167,33 @@ class CommunicationReceiver : BroadcastReceiver() {
         val date = DateTime(stepsOptions.date)
         val startDate = date.withTimeAtStartOfDay().millis
         val endDate = date.plusDays(1).withTimeAtStartOfDay().millis
+        val steps = stepsRepository.getByTimestamps(startDate, endDate)
+        if(steps.isEmpty()) {
+            Log.d(TAG, "missing data")
+            return basicData
+        }
         val locations = gpsRepository.getByTimestamps(startDate, endDate)
+        var inRange = false
         locations.forEach {
             if(inRange(it.lat, it.lon, stepsOptions.lat, stepsOptions.lon, stepsOptions.radius)) {
-                var steps = 0
-                val stepsArray = stepsRepository.getByTimestamp(startDate, endDate)
-                stepsArray.forEach {
-                    steps += it.steps
-                }
-                if(steps == 0) {
-                    return basicData
-                }
-                basicData.raw.add(steps)
-                basicData.n++
-                return basicData
+                inRange = true
+                return@forEach
             }
         }
-        Log.d(TAG, "not in desired area")
+        if(!inRange) {
+            Log.d(TAG, "not in desired area")
+            return basicData
+        }
+        var stepsResult = 0
+        steps.forEach {
+            stepsResult += it.steps
+        }
+        if(stepsResult == 0) {
+            Log.d(TAG, "didn't make steps or don't have sensor")
+            return basicData
+        }
+        basicData.raw.add(steps)
+        basicData.n++
         return basicData
     }
 
@@ -207,25 +217,26 @@ class CommunicationReceiver : BroadcastReceiver() {
         basicData: BasicData
     ): BasicData {
         val location = gpsRepository.getByTimestamp(locationOptions.date)
-        if(inRange(location.lat, location.lon, locationOptions.lat, locationOptions.lon, locationOptions.radius)) {
-            if (abs(location.timestamp - locationOptions.date) < 10*60*1000) {
-                val accuracy = 10.0.pow(locationOptions.accuracy).toInt()
-                val blCorner = Location(
-                    floorToDecimal(location.lat, accuracy),
-                    floorToDecimal(location.lon, accuracy)
-                )
-                val trCorner = Location(
-                    ceilToDecimal(location.lat, accuracy),
-                    ceilToDecimal(location.lon, accuracy)
-                )
-                Log.d(TAG, "bl: (${blCorner.lat},${blCorner.lon}), tr: (${trCorner.lat},${trCorner.lon}) ")
-                val midpoint = haversineMidpoint(blCorner, trCorner)
-                val midPointLocation = Location(midpoint.lat, midpoint.lon)
-                basicData.raw.add(midPointLocation)
-                basicData.n++
-                return basicData
-            }
+        // not in desired time
+        if(abs(location.timestamp - locationOptions.date) < 10*60*1000) {
             Log.d(TAG, "missing data")
+            return basicData
+        }
+        // in desired radius
+        else if(inRange(location.lat, location.lon, locationOptions.lat, locationOptions.lon, locationOptions.radius)) {
+            val accuracy = 10.0.pow(locationOptions.accuracy).toInt()
+            val blCorner = Location(
+                floorToDecimal(location.lat, accuracy),
+                floorToDecimal(location.lon, accuracy)
+            )
+            val trCorner = Location(
+                ceilToDecimal(location.lat, accuracy),
+                ceilToDecimal(location.lon, accuracy)
+            )
+            Log.d(TAG, "bl: (${blCorner.lat},${blCorner.lon}), tr: (${trCorner.lat},${trCorner.lon}) ")
+            val midpoint = haversineMidpoint(blCorner, trCorner)
+            val midPointLocation = Location(midpoint.lat, midpoint.lon)
+            basicData.raw.add(midPointLocation)
             basicData.n++
             return basicData
         }
@@ -243,6 +254,10 @@ class CommunicationReceiver : BroadcastReceiver() {
         val start = DateTime(presenceOptions.start).millis
         val end = DateTime(presenceOptions.end).millis
         val locations = gpsRepository.getByTimestamps(start, end)
+        if(locations.isEmpty()) {
+            Log.d(TAG, "missing data")
+            return basicData
+        }
         Log.d(TAG, "Looking for lat: ${presenceOptions.lat}, lon: ${presenceOptions.lon}")
         locations.forEach {
             Log.d(TAG, "Saved location with lat: ${it.lat}, lon: ${it.lon}")
@@ -253,6 +268,8 @@ class CommunicationReceiver : BroadcastReceiver() {
             }
         }
         Log.d(TAG, "not in desired area")
+        basicData.addRaw(0)
+        basicData.n++
         return basicData
     }
 
