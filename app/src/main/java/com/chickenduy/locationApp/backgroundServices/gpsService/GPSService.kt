@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.google.android.gms.location.DetectedActivity
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
@@ -22,7 +23,7 @@ class GPSService(private val context: Context) {
     private lateinit var locationProvider: FusedLocationProviderClient
     private lateinit var mPendingIntent: PendingIntent
 
-    private val DEFAULTACTIVITY = 0
+    private val DEFAULTACTIVITY = DetectedActivity.STILL
     private val SECONDS = 1000L
 
     init {
@@ -47,11 +48,11 @@ class GPSService(private val context: Context) {
             == PackageManager.PERMISSION_GRANTED
         ) {
             val interval = when (activity) {
-                0 -> SECONDS * 5*60 //still
-                1 -> SECONDS * 30 //walking
-                2 -> SECONDS * 5 //running
-                3 -> SECONDS //biking
-                4 -> SECONDS //vehicle
+                DetectedActivity.STILL -> SECONDS * 5*60 //still
+                DetectedActivity.WALKING -> SECONDS * 30 //walking
+                DetectedActivity.RUNNING -> SECONDS * 5 //running
+                DetectedActivity.ON_BICYCLE -> SECONDS //biking
+                DetectedActivity.IN_VEHICLE -> SECONDS //vehicle
                 else -> SECONDS
             }
 

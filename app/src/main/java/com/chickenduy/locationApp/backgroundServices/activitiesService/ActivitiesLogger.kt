@@ -94,27 +94,27 @@ class ActivitiesLogger : BroadcastReceiver() {
         when (activity) {
             DetectedActivity.STILL -> {
                 Log.d(TAG, "change to still")
-                i.putExtra("activity", 0)
+                i.putExtra("activity", DetectedActivity.STILL)
             }
             DetectedActivity.WALKING -> {
                 Log.d(TAG, "change to walking")
-                i.putExtra("activity", 1)
+                i.putExtra("activity", DetectedActivity.WALKING)
             }
             DetectedActivity.RUNNING -> {
                 Log.d(TAG, "change to running")
-                i.putExtra("activity", 2)
+                i.putExtra("activity", DetectedActivity.RUNNING)
             }
             DetectedActivity.ON_BICYCLE -> {
                 Log.d(TAG, "change to bicycle")
-                i.putExtra("activity", 3)
+                i.putExtra("activity", DetectedActivity.ON_BICYCLE)
             }
             DetectedActivity.IN_VEHICLE -> {
                 Log.d(TAG, "change to vehicle")
-                i.putExtra("activity", 4)
+                i.putExtra("activity", DetectedActivity.IN_VEHICLE)
             }
             else -> {
                 Log.d(TAG, "change to else")
-                i.putExtra("activity", 4)
+                i.putExtra("activity", DetectedActivity.IN_VEHICLE)
             }
         }
         context.startService(i)
