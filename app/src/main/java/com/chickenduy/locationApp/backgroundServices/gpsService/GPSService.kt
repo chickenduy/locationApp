@@ -50,8 +50,8 @@ class GPSService(private val context: Context) {
             val interval = when (activity) {
                 DetectedActivity.STILL -> SECONDS * 5*60 //still
                 DetectedActivity.WALKING -> SECONDS * 30 //walking
-                DetectedActivity.RUNNING -> SECONDS * 5 //running
-                DetectedActivity.ON_BICYCLE -> SECONDS //biking
+                DetectedActivity.RUNNING -> SECONDS * 15 //running
+                DetectedActivity.ON_BICYCLE -> SECONDS * 5 //biking
                 DetectedActivity.IN_VEHICLE -> SECONDS //vehicle
                 else -> SECONDS
             }
