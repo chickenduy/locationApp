@@ -48,11 +48,15 @@
             android:onClick="viewActivities"
             android:text="@string/activities" />
 
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="50dp" />
+
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="crashMe"
-            android:text="@string/crash_me" />
+            android:text="@string/checkPermissions" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

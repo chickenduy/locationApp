@@ -4,5 +4,5 @@
     <string name="gps">GPS</string>
     <string name="steps">Steps</string>
     <string name="textview">test1</string>
-    <string name="crash_me">Crash Me !</string>
+    <string name="checkPermissions">Check Permissions</string>
 </resources>
