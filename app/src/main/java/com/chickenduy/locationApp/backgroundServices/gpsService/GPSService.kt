@@ -60,14 +60,15 @@ class GPSService: Service() {
 
     private fun startTracking(activity: Int) {
         Log.d(TAG, "startTracking")
+        locationProvider.flushLocations()
         if (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
             val interval = when (activity) {
                 DetectedActivity.STILL -> SECONDS * 5*60 //still
                 DetectedActivity.WALKING -> SECONDS * 30 //walking
-                DetectedActivity.RUNNING -> SECONDS * 5 //running
-                DetectedActivity.ON_BICYCLE -> SECONDS //biking
+                DetectedActivity.RUNNING -> SECONDS * 15 //running
+                DetectedActivity.ON_BICYCLE -> SECONDS * 5 //biking
                 DetectedActivity.IN_VEHICLE -> SECONDS //vehicle
                 else -> SECONDS
             }
@@ -77,7 +78,6 @@ class GPSService: Service() {
                 .setInterval(interval)
                 .setFastestInterval(interval/2)
                 .setMaxWaitTime(interval*10)
-            locationProvider.flushLocations()
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)
 
             task.addOnFailureListener { e: Exception ->
