@@ -3,6 +3,7 @@ package com.chickenduy.locationApp.backgroundServices.gpsService
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.chickenduy.locationApp.MyApp
 import com.chickenduy.locationApp.data.database.TrackingDatabase
 import com.chickenduy.locationApp.data.database.entity.GPS
@@ -35,6 +36,7 @@ class GPSLogger : BroadcastReceiver() {
                         it.latitude,
                         it.longitude
                     )
+                    Log.d(TAG, "Saved GPS data")
                     gpsRepository.insert(gps)
                 }
             }).start()

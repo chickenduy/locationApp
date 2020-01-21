@@ -22,7 +22,6 @@ import com.chickenduy.locationApp.backgroundServices.stepsService.StepsService
 class BackgroundService : Service() {
 
     private val TAG = "BACKGROUNDSERVICE"
-    private val NOTIFICATION_ID = 1337
 
     private lateinit var notification: Notification
     private lateinit var gpsService: GPSService
@@ -56,10 +55,10 @@ class BackgroundService : Service() {
         if (!this::notification.isInitialized) {
             notification = buildNotification(this)
         }
-        startForeground(NOTIFICATION_ID, notification)
+        startForeground(1, notification)
 
 
-        val newInterval = intent?.extras?.getInt("activity")
+        val newInterval = intent.extras?.getInt("activity")
         if(newInterval != null) {
             gpsService.startTracking(newInterval)
         }

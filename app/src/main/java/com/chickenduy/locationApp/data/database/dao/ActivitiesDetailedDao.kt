@@ -18,8 +18,9 @@ interface ActivitiesDetailedDao {
     @Query("SELECT * FROM activitiesDetailed_table WHERE id = :id LIMIT 1")
     fun getById(id: Long): ActivitiesDetailed
 
-    @Query("SELECT * FROM activitiesDetailed_table WHERE start < :timestamp AND `end` > :timestamp")
-    fun getByTimestamp(timestamp: Long): List<ActivitiesDetailed>
+    @Query("SELECT * FROM activitiesDetailed_table WHERE start > :minTimestamp AND `end` < :maxTimeStamp")
+    fun getByTimestamps(minTimestamp: Long, maxTimeStamp: Long): List<ActivitiesDetailed>
+
 
     @Query("SELECT * FROM activitiesDetailed_table ORDER BY `end` DESC")
     fun getAll(): LiveData<List<ActivitiesDetailed>>

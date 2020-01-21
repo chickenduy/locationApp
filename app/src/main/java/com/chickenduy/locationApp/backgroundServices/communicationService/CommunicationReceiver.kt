@@ -13,8 +13,9 @@ import com.chickenduy.locationApp.backgroundServices.communicationService.model.
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.LocationOptions
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.PresenceOptions
 import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.StepsOptions
-import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.WalkOptions
+import com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options.ActivityOptions
 import com.chickenduy.locationApp.data.database.TrackingDatabase
+import com.chickenduy.locationApp.data.repository.ActivitiesDetailedRepository
 import com.chickenduy.locationApp.data.repository.ActivitiesRepository
 import com.chickenduy.locationApp.data.repository.GPSRepository
 import com.chickenduy.locationApp.data.repository.StepsRepository
@@ -45,8 +46,8 @@ class CommunicationReceiver : BroadcastReceiver() {
     private val ctx = MyApp.instance
     private val sharedPref = ctx.getSharedPreferences("options", Context.MODE_PRIVATE)
 
-    private val activitiesRepository: ActivitiesRepository =
-        ActivitiesRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDao())
+    private val activitiesRepository: ActivitiesDetailedRepository =
+        ActivitiesDetailedRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDetailedDao())
     private val gpsRepository: GPSRepository =
         GPSRepository(TrackingDatabase.getDatabase(MyApp.instance).gPSDao())
     private val stepsRepository: StepsRepository =
@@ -55,7 +56,7 @@ class CommunicationReceiver : BroadcastReceiver() {
     private val gson = Gson()
 
     private var communicationHandlerSteps: CommunicationHandler<StepsOptions>? = null
-    private var communicationHandlerWalk: CommunicationHandler<WalkOptions>? = null
+    private var communicationHandlerActivity: CommunicationHandler<ActivityOptions>? = null
     private var communicationHandlerLocation: CommunicationHandler<LocationOptions>? = null
     private var communicationHandlerPresence: CommunicationHandler<PresenceOptions>? = null
 
@@ -114,18 +115,18 @@ class CommunicationReceiver : BroadcastReceiver() {
                 )
                 communicationHandlerSteps!!.send()
             }
-            "walk" -> {
+            "activity" -> {
                 Log.d(TAG, "Starting aggregation for walking")
-                val walkOptions = gson.fromJson(requestDataString, WalkOptions::class.java)
+                val activityOptions = gson.fromJson(requestDataString, ActivityOptions::class.java)
                 var basicData = gson.fromJson(decryptedDataString, BasicData::class.java)
-                basicData = aggregateWalk(walkOptions, basicData)
-                communicationHandlerWalk = CommunicationHandler(
+                basicData = aggregateActivity(activityOptions, basicData)
+                communicationHandlerActivity = CommunicationHandler(
                     requestHeader,
                     requestOptions,
-                    walkOptions,
+                    activityOptions,
                     basicData
                 )
-                communicationHandlerWalk!!.send()
+                communicationHandlerActivity!!.send()
             }
             "location" -> {
                 Log.d(TAG, "Starting aggregation for location")
@@ -200,15 +201,25 @@ class CommunicationReceiver : BroadcastReceiver() {
     /**
      * Start internal aggregation of activity
      */
-    private fun aggregateWalk(walkOptions: WalkOptions, basicData: BasicData): BasicData {
-        val startDate = DateTime(walkOptions.start).millis
-        val endDate = DateTime(walkOptions.end).millis
+    private fun aggregateActivity(activityOptions: ActivityOptions, basicData: BasicData): BasicData {
+        val startDate = DateTime(activityOptions.start).millis
+        val endDate = DateTime(activityOptions.end).millis
         val locations = gpsRepository.getByTimestamps(startDate, endDate)
-        locations.forEach {
-            if(inRange(it.lat, it.lon, walkOptions.lat, walkOptions.lon, walkOptions.radius)) {
+        locations.forEach { location ->
+            if(inRange(location.lat, location.lon, activityOptions.lat, activityOptions.lon, activityOptions.radius)) {
+                val activities = activitiesRepository.getByTimestamp(startDate, endDate)
+                var time = 0L
+                activities.forEach {activity ->
+                    if(activity.type == activityOptions.type) {
+                        time += (activity.end-activity.start)
+                    }
+                }
+                basicData.n++
+                basicData.addRaw(time)
                 return basicData
             }
         }
+        Log.d(TAG, "not in desired area")
         return basicData
     }
 
@@ -360,9 +371,9 @@ class CommunicationReceiver : BroadcastReceiver() {
             communicationHandlerSteps!!.cancel()
             communicationHandlerSteps = null
         }
-        if (communicationHandlerWalk != null) {
-            communicationHandlerWalk!!.cancel()
-            communicationHandlerWalk = null
+        if (communicationHandlerActivity != null) {
+            communicationHandlerActivity!!.cancel()
+            communicationHandlerActivity = null
         }
         if (communicationHandlerLocation != null) {
             communicationHandlerLocation!!.cancel()

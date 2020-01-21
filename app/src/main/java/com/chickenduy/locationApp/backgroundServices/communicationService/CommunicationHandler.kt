@@ -105,7 +105,7 @@ class CommunicationHandler<T>(
                 this.requestData,
                 encrypted
             )
-            "walk" -> PushyData(
+            "activity" -> PushyData(
                 key,
                 iv,
                 this.requestHeader,
@@ -178,7 +178,7 @@ class CommunicationHandler<T>(
                 this.requestData,
                 this.basicData
             )
-            "walk" -> ServerMessage(
+            "activity" -> ServerMessage(
                 sharedPref.getString(PASSWORD, "")!!,
                 this.requestHeader,
                 this.requestOptions,

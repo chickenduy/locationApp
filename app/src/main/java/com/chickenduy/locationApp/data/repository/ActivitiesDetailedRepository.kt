@@ -28,8 +28,8 @@ class ActivitiesDetailedRepository(
     }
 
     @WorkerThread
-    fun getByTimestamp(timestamp: Long): List<ActivitiesDetailed> {
-        return activitiesDetailedDao.getByTimestamp(timestamp)
+    fun getByTimestamp(minTimestamp: Long, maxTimestamp: Long): List<ActivitiesDetailed> {
+        return activitiesDetailedDao.getByTimestamps(minTimestamp, maxTimestamp)
     }
 
     @WorkerThread

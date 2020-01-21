@@ -1,6 +1,7 @@
 package com.chickenduy.locationApp.backgroundServices.communicationService.model.request.options
 
-class WalkOptions(
+class ActivityOptions(
+    val type: Int,
     val start: Long,
     val end: Long,
     val lat: Double,

@@ -1,10 +1,13 @@
 package com.chickenduy.locationApp.ui
 
 import android.Manifest
+import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -16,25 +19,17 @@ import com.chickenduy.locationApp.ui.activity.ActivitiesView
 import com.chickenduy.locationApp.ui.gps.GPSView
 import com.chickenduy.locationApp.ui.steps.StepsView
 
+
 class MainActivity : AppCompatActivity() {
     private val ACCESS_FINE_LOCATION_REQUEST_CODE = 1
+    private lateinit var mServiceIntent: Intent
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                ACCESS_FINE_LOCATION_REQUEST_CODE
-            )
-        } else {
-            startBackgroundService()
-        }
+        checkPermissions()
         // Restarts app on crash
 //        Thread.setDefaultUncaughtExceptionHandler(
 //            MyExceptionHandler(
@@ -47,6 +42,27 @@ class MainActivity : AppCompatActivity() {
         if (intent.getBooleanExtra("reboot", false)) {
             Toast.makeText(this, "App restarted after reboot", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun checkPermissions() {
+        val permissionAccessFineLocationApproved = ActivityCompat.
+            checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED && ActivityCompat.
+            checkSelfPermission(this, Manifest.permission.BODY_SENSORS) ==
+                PackageManager.PERMISSION_GRANTED
+        if (!permissionAccessFineLocationApproved) {
+            ActivityCompat.requestPermissions(this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.BODY_SENSORS
+                    ),
+                ACCESS_FINE_LOCATION_REQUEST_CODE
+            )
+        }
+        else {
+            Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
+        }
+        return
     }
 
     override fun onRequestPermissionsResult(
@@ -70,13 +86,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startBackgroundService() {
-        val intent = Intent(this, BackgroundService::class.java)
+        mServiceIntent = Intent(this, BackgroundService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
+            startForegroundService(mServiceIntent)
         } else {
-            startService(intent)
+            startService(mServiceIntent)
         }
         //bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (serviceClass.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+
+    override fun onDestroy() {
+        Log.i("MAINACTIVITY", "onDestroy!");
+        stopService(mServiceIntent)
+        super.onDestroy()
     }
 
     fun viewSteps(view: View) {
@@ -92,6 +124,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun crashMe(view: View) {
-
+        checkPermissions()
     }
 }

@@ -2,9 +2,11 @@ package com.chickenduy.locationApp.backgroundServices.gpsService
 
 import android.Manifest
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.IBinder
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -20,7 +22,7 @@ class GPSService(private val context: Context) {
     private lateinit var locationProvider: FusedLocationProviderClient
     private lateinit var mPendingIntent: PendingIntent
 
-    private val DEFAULTACTIVITY = 1
+    private val DEFAULTACTIVITY = 0
     private val SECONDS = 1000L
 
     init {
@@ -44,12 +46,11 @@ class GPSService(private val context: Context) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            // TODO: Change for test period
             val interval = when (activity) {
-                0 -> SECONDS * 60 //still
+                0 -> SECONDS * 5*60 //still
                 1 -> SECONDS * 30 //walking
-                2 -> SECONDS * 15 //running
-                3 -> SECONDS * 5 //biking
+                2 -> SECONDS * 5 //running
+                3 -> SECONDS //biking
                 4 -> SECONDS //vehicle
                 else -> SECONDS
             }
@@ -60,7 +61,6 @@ class GPSService(private val context: Context) {
                 .setInterval(interval)
                 .setFastestInterval(interval/2)
                 .setMaxWaitTime(interval*10)
-
             locationProvider.flushLocations()
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)
 
