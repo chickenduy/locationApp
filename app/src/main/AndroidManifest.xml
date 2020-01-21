@@ -68,13 +68,19 @@
             android:foregroundServiceType="location">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
         <receiver
             android:name=".backgroundServices.activitiesService.ActivitiesLogger"
             android:enabled="true" />
+
+        <service
+            android:name=".backgroundServices.gpsService.GPSService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false">
+        </service>
         <receiver
             android:name=".backgroundServices.gpsService.GPSLogger"
             android:enabled="true" />
@@ -87,7 +93,6 @@
             android:name=".backgroundServices.communicationService.CommunicationReceiver"
             android:exported="false">
             <intent-filter>
-
                 <!-- Do not modify this -->
                 <action android:name="pushy.me" />
             </intent-filter>

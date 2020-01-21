@@ -15,6 +15,7 @@ import com.chickenduy.locationApp.backgroundServices.activitiesService.Activitie
 import com.chickenduy.locationApp.backgroundServices.communicationService.CommunicationService
 import com.chickenduy.locationApp.backgroundServices.gpsService.GPSService
 import com.chickenduy.locationApp.backgroundServices.stepsService.StepsService
+import com.google.android.gms.location.DetectedActivity
 
 /**
  * This class handles all logic, it starts all location related services
@@ -30,10 +31,13 @@ class BackgroundService : Service() {
     private lateinit var stepsService: StepsService
 
     override fun onCreate() {
-        Log.d(TAG, "Starting BackgroundService")
-        Toast.makeText(this, "Starting BackgroundService", Toast.LENGTH_SHORT).show()
+        Log.d(TAG, "Creating BackgroundService")
+        Toast.makeText(this, "Creating BackgroundService", Toast.LENGTH_SHORT).show()
 
-        gpsService = GPSService(applicationContext)
+        val intent = Intent(this, GPSService::class.java)
+        intent.putExtra("", DetectedActivity.STILL)
+        startService(intent)
+
         // Start Activities Tracking
         activitiesService = ActivitiesService(applicationContext)
         // Start Steps Tracking
@@ -49,7 +53,7 @@ class BackgroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Starting Command")
+        Log.d(TAG, "Starting BackgroundService")
         super.onStartCommand(intent, flags, startId)
 
         if (!this::notification.isInitialized) {
@@ -57,12 +61,12 @@ class BackgroundService : Service() {
         }
         startForeground(1, notification)
 
-
         val newInterval = intent.extras?.getInt("activity")
         if(newInterval != null) {
-            gpsService.startTracking(newInterval)
+            val newIntent = Intent(this, GPSService::class.java)
+            newIntent.putExtra("activity", newInterval)
+            startService(newIntent)
         }
-
         return START_STICKY
     }
 

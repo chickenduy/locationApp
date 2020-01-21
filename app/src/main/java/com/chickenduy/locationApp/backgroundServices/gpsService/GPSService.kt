@@ -17,7 +17,7 @@ import com.google.android.gms.location.LocationServices
 /**
  * This class tracks GPS data in a certain interval
  */
-class GPSService(private val context: Context) {
+class GPSService: Service() {
     private val TAG = "GPSSERVICE"
 
     private lateinit var locationProvider: FusedLocationProviderClient
@@ -26,25 +26,41 @@ class GPSService(private val context: Context) {
     private val DEFAULTACTIVITY = DetectedActivity.STILL
     private val SECONDS = 1000L
 
-    init {
+    override fun onCreate() {
+        Log.d(TAG, "Creating GPSService")
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         Log.d(TAG, "Starting GPSService")
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            locationProvider = LocationServices.getFusedLocationProviderClient(context)
-            val intent = Intent(context, GPSLogger::class.java)
-            mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
+            locationProvider = LocationServices.getFusedLocationProviderClient(applicationContext)
+            val bIntent = Intent(applicationContext, GPSLogger::class.java)
+            mPendingIntent = PendingIntent.getBroadcast(applicationContext, 0, bIntent, 0)
         }
-
+        if(intent != null) {
+            val interval = intent.extras?.getInt("activity")
+            if(interval != null) {
+                startTracking(interval)
+            }
+            else {
+                startTracking(DEFAULTACTIVITY)
+            }
+        }
+        else {
+            startTracking(DEFAULTACTIVITY)
+        }
         /*GlobalScope.launch {
             GPSRepository(TrackingDatabase.getDatabase(context).gPSDao()).deleteAll()
         }*/
-        startTracking(DEFAULTACTIVITY)
+        return START_STICKY
     }
 
-    fun startTracking(activity: Int) {
+    private fun startTracking(activity: Int) {
         Log.d(TAG, "startTracking")
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
             val interval = when (activity) {
@@ -55,7 +71,6 @@ class GPSService(private val context: Context) {
                 DetectedActivity.IN_VEHICLE -> SECONDS //vehicle
                 else -> SECONDS
             }
-
             Log.d(TAG, "change interval speed for ${interval / SECONDS}s")
             val request = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
@@ -72,5 +87,9 @@ class GPSService(private val context: Context) {
             Log.e("LOCATION_UPDATES", "We have no location permission")
     }
 
+
+    override fun onBind(p0: Intent?): IBinder? {
+        return null
+    }
 }
 
