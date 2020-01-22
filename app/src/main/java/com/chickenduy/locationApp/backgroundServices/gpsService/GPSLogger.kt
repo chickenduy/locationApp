@@ -22,6 +22,7 @@ class GPSLogger : BroadcastReceiver() {
 
 
     override fun onReceive(p0: Context?, intent: Intent?) {
+        Log.d(TAG, "Receive GPS data")
 //        GlobalScope.launch {
 //            gpsRepository.deleteAll()
 //        }
@@ -36,7 +37,6 @@ class GPSLogger : BroadcastReceiver() {
                         it.latitude,
                         it.longitude
                     )
-                    Log.d(TAG, "Saved GPS data")
                     gpsRepository.insert(gps)
                 }
             }).start()

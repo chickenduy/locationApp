@@ -45,22 +45,54 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermissions() {
-        val permissionAccessFineLocationApproved = ActivityCompat.
-            checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED && ActivityCompat.
-            checkSelfPermission(this, Manifest.permission.BODY_SENSORS) ==
-                PackageManager.PERMISSION_GRANTED
-        if (!permissionAccessFineLocationApproved) {
-            ActivityCompat.requestPermissions(this,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.BODY_SENSORS
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val permissionAccessFineLocationApproved =
+                ActivityCompat.
+                    checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                        PackageManager.PERMISSION_GRANTED && ActivityCompat.
+                    checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
+                        PackageManager.PERMISSION_GRANTED
+            if (!permissionAccessFineLocationApproved) {
+                ActivityCompat.requestPermissions(this,
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION
                     ),
-                ACCESS_FINE_LOCATION_REQUEST_CODE
-            )
+                    ACCESS_FINE_LOCATION_REQUEST_CODE
+                )
+            }
+            else {
+                Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
+                if(!isMyServiceRunning(BackgroundService::class.java)) {
+                    startBackgroundService()
+                }
+                else {
+                    Toast.makeText(applicationContext, "Background Service is already running", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         else {
-            Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
+            val permissionAccessFineLocationApproved =
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) ==
+                        PackageManager.PERMISSION_GRANTED
+            if (!permissionAccessFineLocationApproved) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    ACCESS_FINE_LOCATION_REQUEST_CODE
+                )
+            } else {
+                Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
+                if(!isMyServiceRunning(BackgroundService::class.java)) {
+                    startBackgroundService()
+                }
+                else {
+                    Toast.makeText(applicationContext, "Background Service is already running", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         return
     }
@@ -76,7 +108,12 @@ class MainActivity : AppCompatActivity() {
                 // permission was granted, yay! Do the
                 // contacts-related task you need to do.
                 Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
-                startBackgroundService()
+                if(!isMyServiceRunning(BackgroundService::class.java)) {
+                    startBackgroundService()
+                }
+                else {
+                    Toast.makeText(applicationContext, "Background Service is already running", Toast.LENGTH_SHORT).show()
+                }
             } else {
                 // permission denied, boo! Disable the
                 // functionality that depends on this permission.

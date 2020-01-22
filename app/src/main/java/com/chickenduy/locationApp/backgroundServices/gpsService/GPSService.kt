@@ -44,6 +44,9 @@ class GPSService(private val context: Context) {
 
     fun startTracking(activity: Int) {
         Log.d(TAG, "startTracking")
+        locationProvider.flushLocations()
+        locationProvider.removeLocationUpdates(mPendingIntent)
+
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
         ) {
@@ -61,8 +64,7 @@ class GPSService(private val context: Context) {
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(interval)
                 .setFastestInterval(interval/2)
-                .setMaxWaitTime(interval*10)
-            locationProvider.flushLocations()
+                //.setMaxWaitTime(interval*5)
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)
 
             task.addOnFailureListener { e: Exception ->
