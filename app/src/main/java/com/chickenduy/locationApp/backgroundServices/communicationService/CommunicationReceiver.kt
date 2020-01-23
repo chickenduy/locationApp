@@ -204,29 +204,35 @@ class CommunicationReceiver : BroadcastReceiver() {
     private fun aggregateActivity(activityOptions: ActivityOptions, basicData: BasicData): BasicData {
         val startDate = DateTime(activityOptions.start).millis
         val endDate = DateTime(activityOptions.end).millis
+        val activities = activitiesRepository.getByTimestamp(startDate, endDate)
+        if(activities.isEmpty()) {
+            Log.d(TAG, "missing data")
+            return basicData
+        }
         val locations = gpsRepository.getByTimestamps(startDate, endDate)
-        locations.forEach { location ->
-            if(inRange(location.lat, location.lon, activityOptions.lat, activityOptions.lon, activityOptions.radius)) {
-                val activities = activitiesRepository.getByTimestamp(startDate, endDate)
-                var time = 0L
-                activities.forEach {activity ->
-                    if(activity.type == activityOptions.type) {
-                        time += (activity.end-activity.start)
-                    }
-                }
-                basicData.n++
-                basicData.addRaw(time)
-                return basicData
+        var inRange = false
+        locations.forEach {
+            if(inRange(it.lat, it.lon, activityOptions.lat, activityOptions.lon, activityOptions.radius)) {
+                inRange = true
+                return@forEach
             }
         }
-        Log.d(TAG, "not in desired area")
+        if(!inRange) {
+            Log.d(TAG, "not in desired area")
+            return basicData
+        }
+        var time = 0L
+        activities.forEach {activity ->
+            if(activity.type == activityOptions.type) {
+                time += (activity.end-activity.start)
+            }
+        }
+        basicData.n++
+        basicData.addRaw(time)
         return basicData
     }
 
-    private fun aggregateLocation(
-        locationOptions: LocationOptions,
-        basicData: BasicData
-    ): BasicData {
+    private fun aggregateLocation(locationOptions: LocationOptions, basicData: BasicData): BasicData {
         val location = gpsRepository.getByTimestamp(locationOptions.date)
         // not in desired time
         if(abs(location.timestamp - locationOptions.date) < 10*60*1000) {
@@ -234,7 +240,7 @@ class CommunicationReceiver : BroadcastReceiver() {
             return basicData
         }
         // in desired radius
-        else if(inRange(location.lat, location.lon, locationOptions.lat, locationOptions.lon, locationOptions.radius)) {
+        if(inRange(location.lat, location.lon, locationOptions.lat, locationOptions.lon, locationOptions.radius)) {
             val accuracy = 10.0.pow(locationOptions.accuracy).toInt()
             val blCorner = Location(
                 floorToDecimal(location.lat, accuracy),
@@ -247,8 +253,8 @@ class CommunicationReceiver : BroadcastReceiver() {
             Log.d(TAG, "bl: (${blCorner.lat},${blCorner.lon}), tr: (${trCorner.lat},${trCorner.lon}) ")
             val midpoint = haversineMidpoint(blCorner, trCorner)
             val midPointLocation = Location(midpoint.lat, midpoint.lon)
-            basicData.raw.add(midPointLocation)
             basicData.n++
+            basicData.raw.add(midPointLocation)
             return basicData
         }
         Log.d(TAG, "not in desired area")
@@ -258,23 +264,18 @@ class CommunicationReceiver : BroadcastReceiver() {
     /**
      * Start internal aggregation of activity
      */
-    private fun aggregatePresence(
-        presenceOptions: PresenceOptions,
-        basicData: BasicData
-    ): BasicData {
-        val start = DateTime(presenceOptions.start).millis
-        val end = DateTime(presenceOptions.end).millis
-        val locations = gpsRepository.getByTimestamps(start, end)
+    private fun aggregatePresence(presenceOptions: PresenceOptions, basicData: BasicData): BasicData {
+        val locations = gpsRepository.getByTimestamps(presenceOptions.start, presenceOptions.end)
         if(locations.isEmpty()) {
             Log.d(TAG, "missing data")
             return basicData
         }
         Log.d(TAG, "Looking for lat: ${presenceOptions.lat}, lon: ${presenceOptions.lon}")
         locations.forEach {
-            Log.d(TAG, "Saved location with lat: ${it.lat}, lon: ${it.lon}")
             if(inRange(it.lat, it.lon, presenceOptions.lat, presenceOptions.lon, presenceOptions.radius)) {
-                basicData.addRaw(1)
+                Log.d(TAG, "Found location with lat: ${it.lat}, lon: ${it.lon}")
                 basicData.n++
+                basicData.addRaw(1)
                 return basicData
             }
         }

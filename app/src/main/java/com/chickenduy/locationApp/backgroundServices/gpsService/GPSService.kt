@@ -20,21 +20,17 @@ import com.google.android.gms.location.LocationServices
 class GPSService(private val context: Context) {
     private val TAG = "GPSSERVICE"
 
-    private lateinit var locationProvider: FusedLocationProviderClient
-    private lateinit var mPendingIntent: PendingIntent
+    private val locationProvider: FusedLocationProviderClient
+    private var mPendingIntent: PendingIntent
 
     private val DEFAULTACTIVITY = DetectedActivity.STILL
     private val SECONDS = 1000L
 
     init {
         Log.d(TAG, "Starting GPSService")
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            locationProvider = LocationServices.getFusedLocationProviderClient(context)
-            val intent = Intent(context, GPSLogger::class.java)
-            mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
-        }
+        locationProvider = LocationServices.getFusedLocationProviderClient(context)
+        val intent = Intent(context, GPSLogger::class.java)
+        mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
 
         /*GlobalScope.launch {
             GPSRepository(TrackingDatabase.getDatabase(context).gPSDao()).deleteAll()
@@ -64,7 +60,7 @@ class GPSService(private val context: Context) {
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(interval)
                 .setFastestInterval(interval/2)
-                //.setMaxWaitTime(interval*5)
+                .setMaxWaitTime(interval*5)
             val task = locationProvider.requestLocationUpdates(request, mPendingIntent)
 
             task.addOnFailureListener { e: Exception ->

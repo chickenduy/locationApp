@@ -12,7 +12,6 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.backgroundServices.BackgroundService
 import com.chickenduy.locationApp.ui.activity.ActivitiesView
@@ -36,9 +35,9 @@ class MainActivity : AppCompatActivity() {
 //                this
 //            )
 //        )
-        if (intent.getBooleanExtra("crash", false)) {
-            Toast.makeText(this, "App restarted after crash", Toast.LENGTH_SHORT).show()
-        }
+//        if (intent.getBooleanExtra("crash", false)) {
+//            Toast.makeText(this, "App restarted after crash", Toast.LENGTH_SHORT).show()
+//        }
         if (intent.getBooleanExtra("reboot", false)) {
             Toast.makeText(this, "App restarted after reboot", Toast.LENGTH_SHORT).show()
         }
@@ -46,18 +45,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val permissionAccessFineLocationApproved =
-                ActivityCompat.
-                    checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                        PackageManager.PERMISSION_GRANTED && ActivityCompat.
-                    checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
-                        PackageManager.PERMISSION_GRANTED
-            if (!permissionAccessFineLocationApproved) {
-                ActivityCompat.requestPermissions(this,
-                    arrayOf(
+            val permissionsApproved = ActivityCompat
+                .checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat
+                .checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat
+                .checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+            if (!permissionsApproved) {
+                ActivityCompat.requestPermissions(this, arrayOf(
                         Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                    ),
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                        Manifest.permission.ACTIVITY_RECOGNITION),
                     ACCESS_FINE_LOCATION_REQUEST_CODE
                 )
             }
@@ -72,19 +68,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
         else {
-            val permissionAccessFineLocationApproved =
-                ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) ==
-                        PackageManager.PERMISSION_GRANTED
+            val permissionAccessFineLocationApproved = ActivityCompat
+                .checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             if (!permissionAccessFineLocationApproved) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                ActivityCompat.requestPermissions(this, arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION),
                     ACCESS_FINE_LOCATION_REQUEST_CODE
                 )
-            } else {
+            }
+            else {
                 Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
                 if(!isMyServiceRunning(BackgroundService::class.java)) {
                     startBackgroundService()
@@ -94,7 +86,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        return
     }
 
     override fun onRequestPermissionsResult(
@@ -105,8 +96,6 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             ACCESS_FINE_LOCATION_REQUEST_CODE -> if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // permission was granted, yay! Do the
-                // contacts-related task you need to do.
                 Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
                 if(!isMyServiceRunning(BackgroundService::class.java)) {
                     startBackgroundService()
@@ -115,9 +104,7 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(applicationContext, "Background Service is already running", Toast.LENGTH_SHORT).show()
                 }
             } else {
-                // permission denied, boo! Disable the
-                // functionality that depends on this permission.
-                Toast.makeText(applicationContext, "Permission denied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "Need permissions to run this app", Toast.LENGTH_SHORT).show()
             }
         }
     }

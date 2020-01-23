@@ -30,8 +30,8 @@ class BackgroundService : Service() {
     private lateinit var stepsService: StepsService
 
     override fun onCreate() {
-        Log.d(TAG, "Starting BackgroundService")
-        Toast.makeText(this, "Starting BackgroundService", Toast.LENGTH_SHORT).show()
+        Log.d(TAG, "Creating BackgroundService")
+        Toast.makeText(this, "Creating BackgroundService", Toast.LENGTH_SHORT).show()
 
         gpsService = GPSService(applicationContext)
         // Start Activities Tracking
@@ -49,7 +49,9 @@ class BackgroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Starting Command")
+        Log.d(TAG, "Starting BackgroundService")
+        Toast.makeText(this, "Starting BackgroundService", Toast.LENGTH_SHORT).show()
+
         super.onStartCommand(intent, flags, startId)
 
         if (!this::notification.isInitialized) {

@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
@@ -21,13 +22,25 @@ class ActivitiesService(context: Context) {
 
     init {
         Log.d(TAG, "Starting ActivitiesService")
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION)
+                == PackageManager.PERMISSION_GRANTED
+            ) {
+                activitiesProvider = ActivityRecognition.getClient(context)
+                val intent = Intent(context, ActivitiesLogger::class.java)
+                mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
+            }
+            else {
+
+            }
+        }
+        else {
             activitiesProvider = ActivityRecognition.getClient(context)
             val intent = Intent(context, ActivitiesLogger::class.java)
             mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0)
         }
+
+
         /*GlobalScope.launch {
             ActivitiesRepository(TrackingDatabase.getDatabase(context).activitiesDao()).deleteAll()
         }*/
