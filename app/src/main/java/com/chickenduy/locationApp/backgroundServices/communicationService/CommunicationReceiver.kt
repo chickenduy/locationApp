@@ -189,11 +189,7 @@ class CommunicationReceiver : BroadcastReceiver() {
         steps.forEach {
             stepsResult += it.steps
         }
-        if(stepsResult == 0) {
-            Log.d(TAG, "didn't make steps or don't have sensor")
-            return basicData
-        }
-        basicData.raw.add(steps)
+        basicData.raw.add(stepsResult)
         basicData.n++
         return basicData
     }
@@ -235,7 +231,8 @@ class CommunicationReceiver : BroadcastReceiver() {
     private fun aggregateLocation(locationOptions: LocationOptions, basicData: BasicData): BasicData {
         val location = gpsRepository.getByTimestamp(locationOptions.date)
         // not in desired time
-        if(abs(location.timestamp - locationOptions.date) < 10*60*1000) {
+        if(abs(location.timestamp - locationOptions.date) > 10*60*1000) {
+            Log.d(TAG, "location: ${location.timestamp}, locationOptions: ${locationOptions.date}")
             Log.d(TAG, "missing data")
             return basicData
         }

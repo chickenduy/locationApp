@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.*
+import kotlin.math.abs
 
 /**
  * This class saves the step data to a database
@@ -21,26 +22,29 @@ class StepsLogger : SensorEventListener {
     private var lastTimeStamp = Date().time
     private val stepsRepository: StepsRepository =
         StepsRepository(TrackingDatabase.getDatabase(MyApp.instance).stepsDao())
+    private var stepCounter = 0
 
     /**
      * Triggered each time the sensor reports new data
      */
     override fun onSensorChanged(event: SensorEvent) {
-        Thread(Runnable {
-            val now = Date().time
-            // We only save steps data at a 60 seconds interval
-            if (now - lastTimeStamp > 1000 * 10) {
-                lastTimeStamp = now
+        val now = Date().time
+        // We save steps data every minute
+        if (abs(now - lastTimeStamp) > 1000 * 60) {
+            Thread(Runnable {
                 stepsRepository.insert(
                     Steps(
                         0,
-                        Date().time,
-                        event.values[0].toInt()
+                        lastTimeStamp,
+                        now,
+                        event.values[0].toInt() - stepCounter
                     )
                 )
+                lastTimeStamp = now
+                stepCounter = event.values[0].toInt()
                 Log.d(TAG, "Logged steps")
-            }
-        }).start()
+            }).start()
+        }
     }
 
     /**

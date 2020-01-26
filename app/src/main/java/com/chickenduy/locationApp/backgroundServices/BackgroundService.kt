@@ -20,9 +20,7 @@ import com.chickenduy.locationApp.backgroundServices.stepsService.StepsService
  * This class handles all logic, it starts all location related services
  */
 class BackgroundService : Service() {
-
     private val TAG = "BACKGROUNDSERVICE"
-
     private lateinit var notification: Notification
     private lateinit var gpsService: GPSService
     private lateinit var activitiesService: ActivitiesService
@@ -32,7 +30,6 @@ class BackgroundService : Service() {
     override fun onCreate() {
         Log.d(TAG, "Creating BackgroundService")
         Toast.makeText(this, "Creating BackgroundService", Toast.LENGTH_SHORT).show()
-
         gpsService = GPSService(applicationContext)
         // Start Activities Tracking
         activitiesService = ActivitiesService(applicationContext)
@@ -40,31 +37,20 @@ class BackgroundService : Service() {
         stepsService = StepsService(applicationContext)
         // Start the Communication Service (Server, next Device)
         communicationService = CommunicationService(applicationContext)
-
-//        (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-//            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag").apply {
-//                acquire()
-//            }
-//        }
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         Log.d(TAG, "Starting BackgroundService")
         Toast.makeText(this, "Starting BackgroundService", Toast.LENGTH_SHORT).show()
-
         super.onStartCommand(intent, flags, startId)
-
         if (!this::notification.isInitialized) {
             notification = buildNotification(this)
         }
         startForeground(1, notification)
-
-
         val newInterval = intent.extras?.getInt("activity")
         if(newInterval != null) {
             gpsService.startTracking(newInterval)
         }
-
         return START_STICKY
     }
 

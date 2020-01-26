@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.chickenduy.locationApp.R
 import com.chickenduy.locationApp.data.database.entity.Steps
+import java.text.SimpleDateFormat
 import java.util.*
 
 class StepsListAdapter internal constructor(context: Context) :
@@ -15,6 +16,7 @@ class StepsListAdapter internal constructor(context: Context) :
 
     private val inflater: LayoutInflater = LayoutInflater.from(context)
     private var stepsList = emptyList<Steps>() // Cached copy of words
+    private val format = SimpleDateFormat("dd/MM/yyyy, HH:mm:ss")
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StepsViewHolder {
         val itemView = inflater.inflate(R.layout.recyclerview_item_row, parent, false)
@@ -23,7 +25,8 @@ class StepsListAdapter internal constructor(context: Context) :
 
     override fun onBindViewHolder(holder: StepsViewHolder, position: Int) {
         val current = stepsList[position]
-        holder.itemDate.text = "${Date(current.timestamp)}"
+        holder.itemDate.text =
+            "${format.format(Date(current.start))} - ${format.format(Date(current.end))}"
         holder.itemDescription.text = "steps: ${current.steps}"
     }
 

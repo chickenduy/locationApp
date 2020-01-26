@@ -39,7 +39,7 @@ class CommunicationHandler<T>(
 
     private val testURI = "http://10.0.2.2:3000/"
     private val serverURI = "https://locationserver.eu-gb.mybluemix.net/"
-    private val pushyURI = "https://api.pushy.me/push?api_key=cfd5f664afd97266ed8ec89ac697b9dcded0afced39635320fc5bfb7a950c705"
+    private val pushyURI = "https://api.pushy.me/push?api_key=aebd6c142e4a6753634265eab8d76ed4d2928fd84969ebebc1092e6c7ccf9192"
     private val queue = Volley.newRequestQueue(this.ctx)
 
     private lateinit var job: Thread

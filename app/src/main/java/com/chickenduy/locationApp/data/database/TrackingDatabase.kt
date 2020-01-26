@@ -29,9 +29,6 @@ abstract class TrackingDatabase : RoomDatabase() {
     abstract fun stepsDao(): StepsDao
 
     companion object {
-
-        var hasStepCounter: Boolean = false
-
         // Singleton prevents multiple instances of database opening at the
         // same time.
         @Volatile

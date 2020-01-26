@@ -22,9 +22,6 @@ class GPSLogger : BroadcastReceiver() {
 
 
     override fun onReceive(p0: Context?, intent: Intent?) {
-//        GlobalScope.launch {
-//            gpsRepository.deleteAll()
-//        }
         if (LocationResult.hasResult(intent)) {
             //Log.d(TAG, "Received GPS Broadcast")
             Thread(Runnable {

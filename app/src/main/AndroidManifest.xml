@@ -58,9 +58,9 @@
             android:name=".backgroundServices.BackgroundService"
             android:enabled="true"
             android:exported="false"
-            android:permission="TODO"
             android:stopWithTask="false"
-            android:process=":logging">
+            android:process=":Logging"
+            android:foregroundServiceType="location">
             <intent-filter>
                 <action android:name=".LOGGING_SERVICE" />
             </intent-filter>
@@ -68,11 +68,9 @@
 
         <receiver
             android:name=".backgroundServices.BootUpReceiver"
-            android:enabled="true"
-            android:foregroundServiceType="location">
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
@@ -84,14 +82,15 @@
             android:enabled="true" />
         <receiver
             android:name=".backgroundServices.stepsService.StepsLogger"
-            android:enabled="true" /> <!-- Pushy Declarations -->
+            android:enabled="true" />
+
+        <!-- Pushy Declarations -->
         <!-- Pushy Notification Receiver -->
         <!-- Incoming push notifications will invoke the following BroadcastReceiver -->
         <receiver
             android:name=".backgroundServices.communicationService.CommunicationReceiver"
             android:exported="false">
             <intent-filter>
-
                 <!-- Do not modify this -->
                 <action android:name="pushy.me" />
             </intent-filter>

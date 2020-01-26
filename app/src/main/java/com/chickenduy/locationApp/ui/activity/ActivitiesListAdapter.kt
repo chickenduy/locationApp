@@ -17,6 +17,7 @@ class ActivitiesListAdapter internal constructor(context: Context) :
     private val inflater: LayoutInflater = LayoutInflater.from(context)
     //    private var activitiesList = emptyList<Activities>() // Cached copy of words
     private var activitiesDetailedList = emptyList<ActivitiesDetailed>()
+    private val format = SimpleDateFormat("dd/MM/yyyy, HH:mm:ss")
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ActivityViewHolder {
         val itemView = inflater.inflate(R.layout.recyclerview_item_row, parent, false)
@@ -44,7 +45,6 @@ class ActivitiesListAdapter internal constructor(context: Context) :
 
     override fun onBindViewHolder(holder: ActivityViewHolder, position: Int) {
         val current = activitiesDetailedList[position]
-        val format = SimpleDateFormat("dd/MM/yyyy, HH:mm:ss")
         holder.itemDate.text =
             "${format.format(Date(current.start))} - ${format.format(Date(current.end))}"
         holder.itemDescription.text = "activity: ${

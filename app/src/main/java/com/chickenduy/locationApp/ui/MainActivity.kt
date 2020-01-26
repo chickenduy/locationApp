@@ -20,6 +20,7 @@ import com.chickenduy.locationApp.ui.steps.StepsView
 
 
 class MainActivity : AppCompatActivity() {
+    private val TAG = "MAINACTIVITY"
     private val ACCESS_FINE_LOCATION_REQUEST_CODE = 1
     private lateinit var mServiceIntent: Intent
 
@@ -112,9 +113,13 @@ class MainActivity : AppCompatActivity() {
     private fun startBackgroundService() {
         mServiceIntent = Intent(this, BackgroundService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Log.d(TAG, "Start on Android Version >=O")
             startForegroundService(mServiceIntent)
         } else {
+            Log.d(TAG, "Start on Android Version <O")
             startService(mServiceIntent)
+            Log.d(TAG, "Started on Android Version <O")
+
         }
         //bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }

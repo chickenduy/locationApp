@@ -9,8 +9,11 @@ data class Steps(
     @PrimaryKey(autoGenerate = true)
     val id: Long,
 
-    @ColumnInfo(name = "timestamp")
-    val timestamp: Long,
+    @ColumnInfo(name = "start")
+    val start: Long,
+
+    @ColumnInfo(name = "end")
+    val end: Long,
 
     @ColumnInfo(name = "steps")
     val steps: Int

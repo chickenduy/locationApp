@@ -31,10 +31,6 @@ class ActivitiesLogger : BroadcastReceiver() {
         ActivitiesDetailedRepository(TrackingDatabase.getDatabase(MyApp.instance).activitiesDetailedDao())
 
     override fun onReceive(context: Context, intent: Intent) {
-//        GlobalScope.launch {
-//            activitiesDetailedRepository.deleteAll()
-//            activitiesRepository.deleteAll()
-//        }
         if (ActivityTransitionResult.hasResult(intent)) {
             Log.d(TAG, "Received Activities broadcast")
             val result = ActivityTransitionResult.extractResult(intent)
@@ -67,7 +63,6 @@ class ActivitiesLogger : BroadcastReceiver() {
                         Log.d(TAG, activityDetailed.toString())
                     }
                 }
-
                 // Get entered activity
                 val activity = detectedActivities
                     .filter { it.transitionType == 0 }
@@ -88,9 +83,7 @@ class ActivitiesLogger : BroadcastReceiver() {
      */
     private fun changeInterval(context: Context, activity: Int?) {
         Log.d("ACTIVITY_RECOGNITION", "Got activity for change: $activity")
-
         val i = Intent(context, BackgroundService::class.java)
-
         when (activity) {
             DetectedActivity.STILL -> {
                 Log.d(TAG, "change to still")
