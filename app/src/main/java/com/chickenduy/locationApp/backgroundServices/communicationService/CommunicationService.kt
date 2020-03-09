@@ -29,7 +29,10 @@ class CommunicationService(private val context: Context) {
     private val PASSWORD = "password"
 
     private val sharedPref = context.getSharedPreferences("options", Context.MODE_PRIVATE)
-    private val serverURI = "https://locationserver.eu-gb.mybluemix.net/"
+    /**
+     * Add URL for the server
+     */
+    private val serverURI = ""
     private val testURI = "http://10.0.2.2:3000/"
     private val queue = Volley.newRequestQueue(this.context)
 
