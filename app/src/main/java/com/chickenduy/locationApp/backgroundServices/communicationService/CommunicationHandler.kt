@@ -38,8 +38,14 @@ class CommunicationHandler<T>(
     private val sharedPref = ctx.getSharedPreferences("options", Context.MODE_PRIVATE)
 
     private val testURI = "http://10.0.2.2:3000/"
-    private val serverURI = "https://locationserver.eu-gb.mybluemix.net/"
-    private val pushyURI = "https://api.pushy.me/push?api_key=aebd6c142e4a6753634265eab8d76ed4d2928fd84969ebebc1092e6c7ccf9192"
+    /**
+     * Add URL for the server
+     */
+    private val serverURI = ""
+    /**
+     * Add URL for the push service (Pushy.me)
+     */
+    private val pushyURI = ""
     private val queue = Volley.newRequestQueue(this.ctx)
 
     private lateinit var job: Thread
